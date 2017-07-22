@@ -68,6 +68,9 @@ If you are a front-end developer in need of a lightweight rules engine, this is 
   RE.updateFacts({status: 3})
   ```
 
+For more examples, refer to the tests.
+
+
 ## What methods are available?
 
 ```javascript
