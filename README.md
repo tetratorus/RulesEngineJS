@@ -30,15 +30,15 @@ var RE = new RulesEngine();
 2.  Add rules.
 ```js
 RE.addRules([
-    ['status_is_active', function(facts) {
-        return (facts.entity||{}).statusCode === 1
+    ['active', function(facts) {
+        return facts.status === 1
     }],
-    ['status_is_approved', function(facts) {
-        return (facts.entity||{}).statusCode === 2
+    ['approved', function(facts) {
+        return facts.status === 2
     }],
     ['not_approved_or_active', null, {
         conditions: {
-            all: ['!status_is_approved', '!status_is_active']
+            all: ['!approved', '!active']
         },
         events: 'is_editable'
     }]
@@ -46,13 +46,13 @@ RE.addRules([
 ```
 3.  Add listeners.
 ```js
-RE.on('is_editable', 'disable_next_button', function() {
-    $('.blue-button.next-button').addClass('disabled');
+RE.on('is_editable', 'disable_button', function() {
+    $('.edit-button').removeClass('disabled');
 });
 ```
 4.  Update facts.
 ```js
-RE.updateFacts($.extend(RE.facts, {entity: this.entity}))
+RE.updateFacts( {status: 3}))
 ```
 
 ### What methods are available?
