@@ -4,14 +4,16 @@
   "description": "",
   "main": "RulesEngineTest.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "test": "mocha test.js"
   },
   "author": "",
   "license": "ISC",
-  "dependencies": {
+  "dependencies": {},
+  "devDependencies": {
     "chai": "^4.1.0",
     "jquery": "^3.2.1",
     "jsdom-no-contextify": "^3.1.0",
+    "json-stable-stringify": "^1.0.1",
     "mocha": "^3.4.2"
   }
 }
