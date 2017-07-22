@@ -5,7 +5,7 @@ A rules engine decouples the workflow logic from other components. This is done 
 ### How does it work?
 The rules engine has three parts: facts, rules, and events.
 
-When facts are updated in the rules engine, its rules are evaluated. If a rule passes (evaluates to true), it triggers any events that has been defined in that rule. Any listeners which are listening for that event will then be triggered.
+When facts are updated in the rules engine, its rules are evaluated. If a rule passes (resolves or evaluates to true), it triggers any events that has been defined in that rule. Any listeners which are listening for that event will then be triggered.
 
 ### Why should I use this?
 - Supports async rules (using jQuery.Deferred)
