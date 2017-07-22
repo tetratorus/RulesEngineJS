@@ -9,6 +9,7 @@ When facts are updated in the rules engine, its rules are evaluated. If a rule p
 
 ### Why should I use this?
 - Supports async rules (using jQuery.Deferred)
+- Supports rule priorities
 - Supports event listeners
 - Supports nested conditions (all, any)
 - Supports negative conditions (!)
