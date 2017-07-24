@@ -162,7 +162,7 @@ describe('RulesEngine', function() {
             done();
         });
     });
-    it('should evaluate an event and remain in the same state after evaluation', function(done) {
+    it('should evaluate an event and remain in the same state after evaluation (resolve)', function(done) {
         var r = new RulesEngine();
         r.addRule('testRule', function(facts) { return facts.testFact; }, { events: ['testEvent', 'otherEvent'] });
         r.addEvent('testEvent');
@@ -173,7 +173,23 @@ describe('RulesEngine', function() {
             return r.rulesMap[a].priority > r.rulesMap[a].priority;
         });
         var temp = stringify(r);
-        r.evaluate('testEvent', { testFact: true }).done(function() {
+        r.evaluate('testEvent', { testFact: true }).always(function() {
+            assert.equal(stringify(r), temp);
+            done();
+        });
+    });
+    it('should evaluate an event and remain in the same state after evaluation (reject)', function(done) {
+        var r = new RulesEngine();
+        r.addRule('testRule', function(facts) { return facts.testFact; }, { events: ['testEvent', 'otherEvent'] });
+        r.addEvent('testEvent');
+        r.addEvent('otherEvent');
+        r.on('testEvent', 'testEventListener', function() { assert.isOk(true); });
+        r.on('otherEvent', 'otherEventListener', function() { assert.isOk(true); });
+        r.rules.sort(function(a, b) {
+            return r.rulesMap[a].priority > r.rulesMap[a].priority;
+        });
+        var temp = stringify(r);
+        r.evaluate('testEvent', { testFact: false }).always(function() {
             assert.equal(stringify(r), temp);
             done();
         });

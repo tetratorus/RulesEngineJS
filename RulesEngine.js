@@ -114,8 +114,8 @@
 			Object.defineProperty(this.events[name], '_auto_generated_', {
 				value: true
 			});
-			opts.events.push(name);
 		}
+    opts.events.push(name);
 		this.rulesMap[name] = {
 			name: name,
 			events: opts.events,
@@ -387,6 +387,12 @@
 			deferred.resolve();
 		});
 		this.run().always(function() {
+      context.off(event, '_evaluation_event');
+			context.facts = tempFacts;
+			context.evaluatedRules = JSON.parse(tempEvaluatedRules);
+			if (tempPriority !== undefined) {
+				context.rulesMap[event].priority = tempPriority;
+			}
 			context.isEvaluatingFlg = false;
 			deferred.reject();
 		});
