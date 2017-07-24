@@ -312,5 +312,40 @@ describe('RulesEngine', function() {
             done();
         });
     });
+    it('should add the rule name as a default event', function(done) {
+      var r = new RulesEngine();
+      r.addRule('testRule', function(facts) { return facts.testFact; });
+      assert.isDefined(r.events.testRule);
+      assert.isTrue(r.events.testRule._auto_generated_);
+      done();
+    });
+    it('should remove the default event if the rule is removed', function(done) {
+      var r = new RulesEngine();
+      r.addRule('testRule', function(facts) { return facts.testFact; });
+      r.removeRule('testRule');
+      assert.equal(Object.keys(r.events).length, 0);
+      done();
+    });
+    it('should not remove the default event if the rule was defined with that event explicitly', function(done) {
+      var r = new RulesEngine();
+      r.addRule('testRule', function(facts) { return facts.testFact; }, { events: 'testRule'});
+      r.removeRule('testRule');
+      assert.equal(Object.keys(r.events).length, 1);
+      done();
+    });
+    it('should clear cache during evaluation of a rule', function(done) {
+      var r = new RulesEngine();
+      r.addRules([
+          ['testRule', function(facts) { return facts.testFact; }, { events: 'testEvent', conditions: { all: [{ any: ['!rule2', 'rule3', 'rule1'] }, '!rule1', '!rule2'] } }],
+          ['rule1', function(facts) { return false; }, { events: 'event1' }],
+          ['rule2', function(facts) { return false; }, { events: 'event2' }],
+          ['rule3', function(facts) { return false; }, { events: 'event3' }]
+      ]);
+      r.run({testFact: true});
+      assert.equal(Object.keys(r.evaluatedRules).length, 4);
+      r.evaluate('testRule', {testFact: false}).fail(function() {
+        done();
+      });
+    });
     // tests for rule priority
 });
