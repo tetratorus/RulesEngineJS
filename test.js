@@ -349,13 +349,14 @@ describe('RulesEngine', function() {
   });
   it('should evaluate rules in order of priority', function(done) {
     var r = new RulesEngine();
-    var prev;
+    var prev, start;
     r.addRules([
-      ['testRule', function(facts) { console.log(r.rules); prev === undefined || assert.equal(prev, 3); return facts.testFact; }, { priority: 9, events: 'testEvent', conditions: { all: [{ any: ['!rule2', 'rule3', 'rule1'] }, '!rule1', '!rule2'] } }],
-      ['rule1', function(facts) { prev === undefined || assert.equal(prev, 2); prev = 3; return false; }, { priority: 8, events: 'event1' }],
-      ['rule2', function(facts) { prev === undefined || assert.equal(prev, 1); prev = 2; return false; }, { priority: 3, events: 'event2' }],
-      ['rule3', function(facts) { prev === undefined || assert.equal(prev, undefined); prev = 1; return false; }, { priority: 2, events: 'event3' }]
+      ['testRule', function(facts) { start && assert.equal(prev, 3); return facts.testFact; }, { priority: 9, events: 'testEvent', conditions: { all: [{ any: ['!rule2', 'rule3', 'rule1'] }, '!rule1', '!rule2'] } }],
+      ['rule1', function(facts) { start && assert.equal(prev, 2); prev = 3; return false; }, { priority: 8, events: 'event1' }],
+      ['rule2', function(facts) { start && assert.equal(prev, 1); prev = 2; return false; }, { priority: 3, events: 'event2' }],
+      ['rule3', function(facts) { start && assert.equal(prev, 0); prev = 1; return false; }, { priority: 2, events: 'event3' }]
     ]);
+    start = true;
     prev = 0;
     r.run({testFact: true});
     done();
