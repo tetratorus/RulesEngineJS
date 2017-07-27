@@ -136,7 +136,7 @@ describe('RulesEngine', function() {
             }
           ]
         },
-        'rule1'
+          'rule1'
         ]
       }
     });
