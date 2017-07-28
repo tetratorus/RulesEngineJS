@@ -47,14 +47,25 @@
   RulesEngine.prototype.constructor = RulesEngine;
 
   /** Replaces all the facts in the rules engine and triggers a run. */
-  RulesEngine.prototype.updateFacts = function(facts) {
-    deferred = $.Deferred();
-    this.evaluatedRules = {};
-    this.facts = facts;
-    this.run().always(function() {
-      deferred.resolve();
-    });
-    return deferred;
+  RulesEngine.prototype.updateFacts = function(facts, value) {
+    if (typeof facts === 'object') {
+      deferred = $.Deferred();
+      this.evaluatedRules = {};
+      this.facts = facts;
+      this.run().always(function() {
+        deferred.resolve();
+      });
+      return deferred;
+    } else if (typeof facts === 'string') {
+      var properties = facts;
+      var arr = properties.split('.');
+      var target = this.facts;
+      for (var i = 0; i < arr.length - 1; i++) {
+        target = target[arr[i]];
+        if (target === undefined) return;
+      }
+      target[arr[arr.length - 1]] = value;
+    }
   };
 
   /** Adds a rule, accepts three arguments:

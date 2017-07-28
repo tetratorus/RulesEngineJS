@@ -373,4 +373,22 @@ describe('RulesEngine', function() {
     r.addRule('testRule3', function() { return r.getFacts('a.b.c.d'); });
     done();
   });
+  it('should update facts via property string', function(done) {
+    var r = new RulesEngine();
+    r.facts = {a: {b: {c: 3}}, d: 6};
+    r.addRule('testRule', function() { return r.getFacts('a.b.c') === 4; });
+    r.addRule('testRule2', function() { return r.getFacts('d') === 5; });
+    r.updateFacts('a.b.c', 4);
+    r.updateFacts('d', 5);
+    r.evaluate('testRule').done(function() {
+      assert.isOk(true);
+    }).fail(function() {
+      assert.isOk(false);
+    });
+    r.evaluate('testRule2').done(function() {
+      done();
+    }).fail(function() {
+      assert.isOK(false);
+    });
+  });
 });
