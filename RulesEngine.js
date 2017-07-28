@@ -399,5 +399,16 @@
     return deferred;
   };
 
+  /** Accesses nested facts **/
+  RulesEngine.prototype.getFacts = function(properties) {
+    var arr = properties.split('.');
+    var res = this.facts;
+    for (var i = 0; i < arr.length; i++) {
+      res = res[arr[i]];
+      if (res === undefined) return undefined;
+    }
+    return res;
+  };
+
   return RulesEngine;
 });

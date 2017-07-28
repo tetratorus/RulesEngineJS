@@ -361,4 +361,16 @@ describe('RulesEngine', function() {
     r.run({testFact: true});
     done();
   });
+  it('should be able to access nested facts using "getFacts"', function(done) {
+    var r = new RulesEngine();
+    r.facts = {a: {b: {c: 3}}};
+    try {
+      r.addRule('testRule1', function(facts) { return facts.a.b.c.d.e; });
+    } catch (e) {
+      assert.isOk(true);
+    }
+    r.addRule('testRule2', function() { return r.getFacts('a.b.c'); });
+    r.addRule('testRule3', function() { return r.getFacts('a.b.c.d'); });
+    done();
+  });
 });
