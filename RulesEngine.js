@@ -48,8 +48,9 @@
 
   /** Replaces all the facts in the rules engine and triggers a run. */
   RulesEngine.prototype.updateFacts = function(facts, value) {
+    debugger;
+    var deferred = $.Deferred();
     if (typeof facts === 'object') {
-      deferred = $.Deferred();
       this.evaluatedRules = {};
       this.facts = facts;
       this.run().always(function() {
@@ -62,9 +63,20 @@
       var target = this.facts;
       for (var i = 0; i < arr.length - 1; i++) {
         target = target[arr[i]];
-        if (target === undefined) return;
+        if (target === undefined) {
+          this.evaluatedRules = {};
+          this.run().always(function() {
+            deferred.resolve();
+          });
+          return deferred;
+        }
       }
       target[arr[arr.length - 1]] = value;
+      this.evaluatedRules = {};
+      this.run().always(function() {
+        deferred.resolve();
+      });
+      return deferred;
     }
   };
 
@@ -232,7 +244,6 @@
       }
       var deferredArray = [];
       if (conditions.all !== undefined) {
-        debugger;
         for (var i = 0; i < conditions.all.length; i++) {
           deferredArray.push(evaluateConditions(conditions.all[i]));
         }

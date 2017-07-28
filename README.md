@@ -17,7 +17,7 @@ When facts are updated in the rules engine, its rules are evaluated. If a rule p
 - Supports event listeners
 - Supports nested conditions (all, any)
 - Supports negative conditions (!)
-- Small (5KB minified)
+- Small (6KB minified)
 - Efficient (caching, early exit)
 - Only depends on jQuery
 

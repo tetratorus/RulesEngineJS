@@ -375,20 +375,23 @@ describe('RulesEngine', function() {
   });
   it('should update facts via property string', function(done) {
     var r = new RulesEngine();
+    var count = 0;
     r.facts = {a: {b: {c: 3}}, d: 6};
     r.addRule('testRule', function() { return r.getFacts('a.b.c') === 4; });
     r.addRule('testRule2', function() { return r.getFacts('d') === 5; });
-    r.updateFacts('a.b.c', 4);
-    r.updateFacts('d', 5);
-    r.evaluate('testRule').done(function() {
-      assert.isOk(true);
-    }).fail(function() {
-      assert.isOk(false);
+    r.on('testRule', 'testRuleHandler', function() {
+      count++;
     });
-    r.evaluate('testRule2').done(function() {
-      done();
-    }).fail(function() {
-      assert.isOK(false);
+    r.on('testRule2', 'testRule2Handler', function() {
+      count++;
+    });
+    r.updateFacts('a.b.c', 4).done(function() {
+      return r.updateFacts('d', 5);
+    }).done(function() {
+      setTimeout(function() {
+        assert.equal(count, 3);
+        done();
+      }, 20);
     });
   });
 });
