@@ -1,8 +1,16 @@
 var chai = require('chai');
 var assert = chai.assert;
 var stringify = require('json-stable-stringify');
-
-var RulesEngine = require('./RulesEngine.js');
+var RulesEngine = require('./src/RulesEngine.js');
+var jsdom = require('jsdom-no-contextify');
+var $;
+jsdom.env('', function(err, window) {
+  if (err) {
+    console.error(err);
+    return;
+  }
+  $ = require('jquery')(window);
+});
 
 
 /** Tests */
@@ -393,5 +401,23 @@ describe('RulesEngine', function() {
         done();
       }, 20);
     });
+  });
+  it('should accept a promise library in place of jQuery', function(done) {
+    var temp = $.Deferred;
+    var flag = false;
+    $.Deferred = function() {
+      flag = true;
+      return temp.apply($, arguments);
+    }
+    var r = new RulesEngine($);
+    r.addEvents(['testEvent', 'event1', 'event2', 'event3']);
+    r.addRules([
+      ['testRule', function(facts) { return facts.testFact; }, { events: 'testEvent', conditions: { all: [{ any: ['!rule2', 'rule3'] }, '!rule1'] } }],
+      ['rule1', function(facts) { return false; }, { events: 'event1' }],
+      ['rule2', function(facts) { return false; }, { events: 'event2' }],
+      ['rule3', function(facts) { return false; }, { events: 'event3' }]
+    ]);
+    r.on('testEvent', '_log_testEvent', function() { flag ? done() : assert.isOk(false); });
+    r.updateFacts({ testFact: true });
   });
 });

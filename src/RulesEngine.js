@@ -12,6 +12,7 @@
   }
   scope[instance.name] = instance;
 })(this, function() {
+  var jQuery;
   if (typeof $ === 'undefined') {
     var jsdom = require('jsdom-no-contextify');
     jsdom.env('', function(err, window) {
@@ -20,6 +21,7 @@
         return;
       }
       $ = require('jquery')(window);
+      jQuery = $;
     });
   }
   //***************************************************************//
@@ -30,17 +32,17 @@
   /**
 	 * Simple rules engine with support for event listeners.
 	 * @constructor
-	 * @param {facts} facts - Prepopulate the rules engine with a facts object.
+	 * @param {Promise} Promise - accepts a promise library in place of jQuery.
 	 */
-  var RulesEngine = function(facts) {
+  var RulesEngine = function(Promise) {
     this.facts = {};
     this.rules = [];
     this.rulesMap = {};
     this.evaluatedRules = {};
     this.events = {};
     this.isEvaluatingFlg = false;
-    if (facts !== undefined) {
-      this.updateFacts(facts);
+    if (Promise !== undefined) {
+      jQuery = Promise;
     }
   };
 
@@ -48,8 +50,7 @@
 
   /** Replaces all the facts in the rules engine and triggers a run. */
   RulesEngine.prototype.updateFacts = function(facts, value) {
-    debugger;
-    var deferred = $.Deferred();
+    var deferred = jQuery.Deferred();
     if (typeof facts === 'object') {
       this.evaluatedRules = {};
       this.facts = facts;
@@ -64,14 +65,12 @@
       for (var i = 0; i < arr.length - 1; i++) {
         target = target[arr[i]];
         if (target === undefined) {
-          this.evaluatedRules = {};
-          this.run().always(function() {
-            deferred.resolve();
-          });
-          return deferred;
+          break;
         }
       }
-      target[arr[arr.length - 1]] = value;
+      if (target !== undefined) {
+        target[arr[arr.length - 1]] = value;
+      }
       this.evaluatedRules = {};
       this.run().always(function() {
         deferred.resolve();
@@ -90,13 +89,13 @@
     if (typeof name !== 'string') return;
     if (typeof evaluator !== 'function') {
       evaluator = function() {
-        return $.Deferred().resolve();
+        return jQuery.Deferred().resolve();
       };
     } else if ((evaluator(this.facts) || {}).then === undefined) {
       var temp = evaluator;
       evaluator = (function(orig) {
         return function(input) {
-          var deferred = $.Deferred();
+          var deferred = jQuery.Deferred();
           // convert to async
           if (orig(input)) {
             setTimeout(deferred.resolve, 0);
@@ -237,27 +236,27 @@
       return context.rulesMap[a].priority > context.rulesMap[b].priority;
     });
     var evaluateConditions = function(conditions) {
-      var deferred = $.Deferred();
+      var deferred = jQuery.Deferred();
       if (exit) return deferred.resolve();
       if (conditions === undefined) {
         return deferred.resolve();
       }
       var deferredArray = [];
       if (conditions.all !== undefined) {
-        for (var i = 0; i < conditions.all.length; i++) {
-          deferredArray.push(evaluateConditions(conditions.all[i]));
-        }
-        $.when.apply($, deferredArray)
+        conditions.all.forEach(function(condition) {
+          deferredArray.push(evaluateConditions(condition));
+        });
+        jQuery.when.apply(jQuery, deferredArray)
           .done(function() {
             deferred.resolve();
           }).fail(function() {
             deferred.reject();
           });
       } else if (conditions.any !== undefined) {
-        for (var i = 0; i < conditions.any.length; i++) {
+        conditions.any.forEach(function(condition) {
           deferredArray.push((function() {
-            var deferred = $.Deferred();
-            evaluateConditions(conditions.any[i])
+            var deferred = jQuery.Deferred();
+            evaluateConditions(condition)
               .done(function() {
                 deferred.reject();
               })
@@ -266,8 +265,8 @@
               });
             return deferred;
           })());
-        }
-        $.when.apply($, deferredArray)
+        });
+        jQuery.when.apply(jQuery, deferredArray)
           .done(function() {
             deferred.reject();
           }).fail(function() {
@@ -309,7 +308,7 @@
       return deferred;
     };
     var evaluateRule = function(rule) {
-      var deferred = $.Deferred();
+      var deferred = jQuery.Deferred();
       if (exit) return deferred.resolve();
       if (rule === undefined) return deferred.resolve();
       if (context.evaluatedRules[rule.name] === true) return deferred.resolve();
@@ -361,9 +360,9 @@
       return deferred;
     };
     if (Object.keys(context.rulesMap).length === 0) {
-      return $.Deferred().resolve();
+      return jQuery.Deferred().resolve();
     }
-    var deferred = $.Deferred();
+    var deferred = jQuery.Deferred();
 
     // chain promises
     var looper = function(index, deferredFn) {
@@ -385,7 +384,7 @@
 	    Used to test a listener against a set of facts.
 	 */
   RulesEngine.prototype.evaluate = function(event, facts) {
-    var deferred = $.Deferred();
+    var deferred = jQuery.Deferred();
     var tempFacts = this.facts;
     var tempEvaluatedRules = JSON.stringify(this.evaluatedRules);
     var tempPriority;
