@@ -307,17 +307,23 @@ describe('RulesEngine', function() {
     done();
   });
   it('should prioritize and exit early during individual rule/event evaluation', function(done) {
+    debugger;
     var r = new RulesEngine();
     r.addRules([
       ['testRule', function(facts) { return facts.testFact; }, { priority: 777777, events: 'testEvent', conditions: { all: [{ any: ['!rule2', 'rule3', 'rule1'] }, '!rule1', '!rule2'] } }],
       ['rule1', function(facts) { count++; return true; }, { priority: 9, events: 'event1' }],
       ['rule2', function(facts) { count++; return false; }, { priority: 1, events: 'event2' }],
-      ['rule3', function(facts) { count++; return false; }, { priority: 2, events: 'event3' }]
+      ['rule3', function(facts) { count++; return false; }, { priority: 2, events: 'event3' }],
+      ['rule4', undefined, {conditions: '!rule1'}]
     ]);
     var count = 0;
     r.evaluate('rule1').always(function() {
       assert.equal(count, 1);
-      done();
+      count = 0;
+      r.evaluate('rule4').always(function() {
+        assert.equal(count, 1);
+        done();
+      })
     });
   });
   it('should add the rule name as a default event', function(done) {

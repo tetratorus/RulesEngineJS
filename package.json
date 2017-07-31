@@ -5,7 +5,8 @@
   "main": "dist/rulesengine.min.js",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha test.js",
-    "build": "npm test && ./node_modules/minify/bin/minify.js ./src/RulesEngine.js > ./dist/rulesengine.min.js"
+    "build": "npm test && ./node_modules/minify/bin/minify.js ./src/RulesEngine.js > ./dist/rulesengine.min.js",
+    "debug": "./node_modules/mocha/bin/mocha --inspect-brk test.js"
   },
   "author": "tetratorus",
   "license": "MIT",

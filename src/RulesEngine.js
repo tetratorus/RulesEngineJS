@@ -195,8 +195,8 @@
   };
 
   /** Emits an event and triggers all handlers bound to that event. */
-  RulesEngine.prototype.emit = function(event) {
-    if (this.isEvaluatingFlg) {
+  RulesEngine.prototype.emit = function(event, isEvaluatingFlg) {
+    if (isEvaluatingFlg) {
       if (this.events[event].bound._evaluation_event !== undefined) {
         this.events[event].bound._evaluation_event(this.facts);
         return true;
@@ -233,7 +233,9 @@
     var exit = false;
     var context = this;
     context.rules.sort(function(a, b) {
-      return context.rulesMap[a].priority > context.rulesMap[b].priority;
+      if (context.rulesMap[a].priority > context.rulesMap[b].priority) return 1;
+      if (context.rulesMap[a].priority < context.rulesMap[b].priority) return -1;
+      return 0;
     });
     var evaluateConditions = function(conditions) {
       var deferred = jQuery.Deferred();
@@ -331,15 +333,17 @@
               .done(function() {
                 context.evaluatedRules[rule.name] = true;
                 for (var i = 0; i < rule.events.length; i++) {
-                  if (context.emit(rule.events[i]) === true) exit = true;
+                  if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
                 }
                 deferred.resolve();
               }).fail(function() {
+                if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
                 context.evaluatedRules[rule.name] = false;
                 deferred.reject();
               });
           })
           .fail(function() {
+            if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
             deferred.reject();
           });
       } else {
@@ -352,6 +356,7 @@
             deferred.resolve();
           })
           .fail(function() {
+            if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
             context.evaluatedRules[rule.name] = false;
             deferred.reject();
           });
@@ -397,6 +402,7 @@
       this.rulesMap[event].priority = -Infinity;
     }
     this.isEvaluatingFlg = true;
+    this.evaluatedRules = {};
     this.on(event, '_evaluation_event', function(facts) {
       context.off(event, '_evaluation_event');
       context.facts = tempFacts;
