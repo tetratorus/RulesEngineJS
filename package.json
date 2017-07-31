@@ -1,6 +1,6 @@
 {
   "name": "rulesenginejs",
-  "version": "1.8.0",
+  "version": "1.9.0",
   "description": "A simple front-end rules engine",
   "main": "dist/rulesengine.min.js",
   "scripts": {
@@ -12,12 +12,11 @@
   },
   "author": "tetratorus",
   "license": "MIT",
-  "dependencies": {
-    "jquery": "^3.2.1",
-    "jsdom-no-contextify": "^3.1.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "chai": "^4.1.0",
+    "jquery": "^3.2.1",
+    "jsdom-no-contextify": "^3.1.0",
     "json-stable-stringify": "^1.0.1",
     "minify": "^3.0.0",
     "mocha": "^3.4.2"
