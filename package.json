@@ -1,6 +1,6 @@
 {
   "name": "rulesenginejs",
-  "version": "1.7.2",
+  "version": "1.7.3",
   "description": "A simple front-end rules engine",
   "main": "dist/rulesengine.min.js",
   "scripts": {

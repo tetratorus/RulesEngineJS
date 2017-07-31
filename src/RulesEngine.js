@@ -327,29 +327,32 @@
                   if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
                 }
                 deferred.resolve();
+                context.evaluatedRules[rule.name] = true;
               }).fail(function() {
                 if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
                 context.evaluatedRules[rule.name] = false;
                 deferred.reject();
+                context.evaluatedRules[rule.name] = false;
               });
           })
           .fail(function() {
             if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
             deferred.reject();
+            context.evaluatedRules[rule.name] = false;
           });
       } else {
         rule.test(context.facts)
           .done(function() {
-            context.evaluatedRules[rule.name] = true;
             for (var j = 0; j < rule.events.length; j++) {
               if (context.emit(rule.events[j], context.isEvaluatingFlg) === true) exit = true;
             }
             deferred.resolve();
+            context.evaluatedRules[rule.name] = true;
           })
           .fail(function() {
             if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
-            context.evaluatedRules[rule.name] = false;
             deferred.reject();
+            context.evaluatedRules[rule.name] = false;
           });
       }
 
