@@ -13,17 +13,27 @@
   scope[instance.name] = instance;
 })(this, function() {
   var jQuery;
-  if (typeof $ === 'undefined') {
-    var jsdom = require('jsdom-no-contextify');
-    jsdom.env('', function(err, window) {
-      if (err) {
-        console.error(err);
-        return;
-      }
-      $ = require('jquery')(window);
-      jQuery = $;
-    });
+  try {
+    if (typeof $ === 'undefined') {
+      debugger;
+      var jsdom = require('jsdom-no-contextify');
+      jsdom.env('', function(err, window) {
+        if (err) {
+          console.error(err);
+          return;
+        }
+        $ = require('jquery')(window);
+        jQuery = $;
+      });
+    }
+  } catch (e) {
+    try {
+      jQuery = require('./Deferred.js');
+    } catch (e) {
+      jQuery = require('./deferred.min.js');
+    }
   }
+
   //***************************************************************//
   //  Rules Engine                                                 //
   //  NOTE: This module uses jQuery as a dependency                //
@@ -316,7 +326,7 @@
         return deferred;
       }
       context.evaluatedRules[rule.name] = deferred;
-      // check if conditions are satisfied first
+      // check conditions
       if (rule.conditions !== undefined) {
         evaluateConditions(rule.conditions)
           .done(function() {
