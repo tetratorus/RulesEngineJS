@@ -62,7 +62,7 @@
     }
   };
 
-  RulesEngine.prototype.getFacts = function() {
+  RulesEngine.prototype.getFacts = function(accessor) {
     var recursiveDeepCopy = function(o) {
     	var newO, i;
     	if (typeof o !== 'object') return o
@@ -84,7 +84,14 @@
     	}
     	return newO;
     }
-    return recursiveDeepCopy(this.facts);
+    var res = recursiveDeepCopy(this.facts);
+    if (accessor === undefined || typeof accessor !== 'string') return res;
+    var arr = accessor.split('.');
+    for (var i = 0; i < arr.length; i++) {
+      res = res[arr[i]];
+      if (res === undefined) return undefined;
+    }
+    return res;
   }
 
   /** Adds a rule, accepts three arguments:
