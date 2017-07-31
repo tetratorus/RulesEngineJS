@@ -34,6 +34,7 @@
 	 * @constructor
 	 * @param {Promise} Promise - accepts a promise library in place of jQuery.
 	 */
+
   var RulesEngine = function(Promise) {
     this.facts = {};
     this.rules = [];
@@ -58,26 +59,33 @@
         deferred.resolve();
       });
       return deferred;
-    } else if (typeof facts === 'string') {
-      var properties = facts;
-      var arr = properties.split('.');
-      var target = this.facts;
-      for (var i = 0; i < arr.length - 1; i++) {
-        target = target[arr[i]];
-        if (target === undefined) {
-          break;
-        }
-      }
-      if (target !== undefined) {
-        target[arr[arr.length - 1]] = value;
-      }
-      this.evaluatedRules = {};
-      this.run().always(function() {
-        deferred.resolve();
-      });
-      return deferred;
     }
   };
+
+  RulesEngine.prototype.getFacts = function() {
+    var recursiveDeepCopy = function(o) {
+    	var newO, i;
+    	if (typeof o !== 'object') return o
+    	if (!o) return o
+
+    	if ('[object Array]' === Object.prototype.toString.apply(o)) {
+    		newO = [];
+    		for (i = 0; i < o.length; i += 1) {
+    			newO[i] = recursiveDeepCopy(o[i]);
+    		}
+    		return newO;
+    	}
+
+    	newO = {};
+    	for (i in o) {
+    		if (o.hasOwnProperty(i)) {
+    			newO[i] = recursiveDeepCopy(o[i]);
+    		}
+    	}
+    	return newO;
+    }
+    return recursiveDeepCopy(this.facts);
+  }
 
   /** Adds a rule, accepts three arguments:
 	    name - name of the rule,
@@ -211,9 +219,6 @@
 
   /** Binds a listener to an event. */
   RulesEngine.prototype.on = function(event, name, handler) {
-    if (this.events[event] === undefined) {
-      this.addEvent(event);
-    }
     this.events[event].bound[name] = handler;
   };
 
@@ -424,17 +429,6 @@
       deferred.reject();
     });
     return deferred;
-  };
-
-  /** Accesses nested facts **/
-  RulesEngine.prototype.getFacts = function(properties) {
-    var arr = properties.split('.');
-    var res = this.facts;
-    for (var i = 0; i < arr.length; i++) {
-      res = res[arr[i]];
-      if (res === undefined) return undefined;
-    }
-    return res;
   };
 
   return RulesEngine;

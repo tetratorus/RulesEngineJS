@@ -375,39 +375,6 @@ describe('RulesEngine', function() {
     r.run({testFact: true});
     done();
   });
-  it('should be able to access nested facts using "getFacts"', function(done) {
-    var r = new RulesEngine();
-    r.facts = {a: {b: {c: 3}}};
-    try {
-      r.addRule('testRule1', function(facts) { return facts.a.b.c.d.e; });
-    } catch (e) {
-      assert.isOk(true);
-    }
-    r.addRule('testRule2', function() { return r.getFacts('a.b.c'); });
-    r.addRule('testRule3', function() { return r.getFacts('a.b.c.d'); });
-    done();
-  });
-  it('should update facts via property string', function(done) {
-    var r = new RulesEngine();
-    var count = 0;
-    r.facts = {a: {b: {c: 3}}, d: 6};
-    r.addRule('testRule', function() { return r.getFacts('a.b.c') === 4; });
-    r.addRule('testRule2', function() { return r.getFacts('d') === 5; });
-    r.on('testRule', 'testRuleHandler', function() {
-      count++;
-    });
-    r.on('testRule2', 'testRule2Handler', function() {
-      count++;
-    });
-    r.updateFacts('a.b.c', 4).done(function() {
-      return r.updateFacts('d', 5);
-    }).done(function() {
-      setTimeout(function() {
-        assert.equal(count, 3);
-        done();
-      }, 20);
-    });
-  });
   it('should accept a promise library in place of jQuery', function(done) {
     var temp = $.Deferred;
     var flag = false;
@@ -426,4 +393,11 @@ describe('RulesEngine', function() {
     r.on('testEvent', '_log_testEvent', function() { flag ? done() : assert.isOk(false); });
     r.updateFacts({ testFact: true });
   });
+  it('should return a deep copy of facts', function(done) {
+    var r = new RulesEngine();
+    r.facts = {c: {d: {e: [1,2,3,4,5]}}};
+    assert.isOk(r.facts !== r.getFacts());
+    assert.deepEqual(r.facts, r.getFacts());
+    done();
+  })
 });
