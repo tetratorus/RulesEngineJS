@@ -1,13 +1,13 @@
 {
   "name": "rulesenginejs",
-  "version": "1.7.1",
+  "version": "1.7.2",
   "description": "A simple front-end rules engine",
   "main": "dist/rulesengine.min.js",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha test.js",
     "build": "npm test && ./node_modules/minify/bin/minify.js ./src/RulesEngine.js > ./dist/rulesengine.min.js",
     "debug": "./node_modules/mocha/bin/mocha --inspect-brk test.js",
-    "publish": "npm run build && npm publish && git push origin master"
+    "push": "npm run build && npm publish && git push origin master"
   },
   "author": "tetratorus",
   "license": "MIT",
