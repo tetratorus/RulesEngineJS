@@ -31,15 +31,14 @@
 
   //***************************************************************//
   //  Rules Engine                                                 //
-  //  NOTE: This module uses jQuery as a dependency                //
   //                                                               //
   //***************************************************************//
+
   /**
 	 * Simple rules engine with support for event listeners.
 	 * @constructor
 	 * @param {Promise} Promise - accepts a promise library in place of jQuery.
 	 */
-
   var RulesEngine = function(Promise) {
     this.facts = {};
     this.rules = [];
@@ -49,9 +48,10 @@
     this.isEvaluatingFlg = false;
     if (Promise !== undefined) {
       jQuery = Promise;
+    } else if (jQuery.Deferred === undefined) {
+      throw new Error ('No jQuery.Deferred or shim found.')
     }
   };
-
   RulesEngine.prototype.constructor = RulesEngine;
 
   /** Replaces all the facts in the rules engine and triggers a run. */
@@ -67,8 +67,13 @@
     }
   };
 
+  /** Returns a deep copy of an object (can be overriden). */
+  RulesEngine.prototype._deepCopy = function(obj) {
+    return JSON.parse(JSON.stringify(obj));
+  }
+
   RulesEngine.prototype.getFacts = function(accessor) {
-    var res = JSON.parse(JSON.stringify(this.facts));
+    var res = this._deepCopy(this.facts);
     if (accessor === undefined || typeof accessor !== 'string') return res;
     var arr = accessor.split('.');
     for (var i = 0; i < arr.length; i++) {

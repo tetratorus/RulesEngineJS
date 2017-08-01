@@ -12,16 +12,18 @@ When facts are updated in the rules engine, its rules are evaluated. If a rule p
 
 ## Why should I use this?
 
-- Supports async rules (using jQuery.Deferred)
+- Supports async rules
 - Supports rule priorities
 - Supports event listeners
 - Supports nested conditions (all, any)
 - Supports negative conditions (!)
-- Small (6KB minified)
+- Small (8kb minified)
 - Efficient (caching, early exit)
-- Only depends on jQuery
+- ES5 compatible
+- No dependencies
+- Easy to use
 
-If you are a front-end developer in need of a lightweight rules engine, this is it.
+If you are developer in need of a lightweight rules engine, this is it.
 
 ```html
 <script src="rulesengine.min.js"></script>
@@ -39,19 +41,19 @@ If you are a front-end developer in need of a lightweight rules engine, this is 
 
   ```javascript
   RE.addRules([
-  ['active', function(facts) {
-      return facts.status === 1
-  }],
-  ['approved', function(facts) {
-      return facts.status === 2
-  }],
-  ['not_approved_or_active', null, {
-      conditions: {
-          all: ['!approved', '!active']
-      },
-      events: 'is_editable'
-  }]
-  ])
+    ['active', function(facts) {
+        return facts.status === 1
+    }],
+    ['approved', function(facts) {
+        return facts.status === 2
+    }],
+    ['not_approved_or_active', null, {
+        conditions: {
+            all: ['!approved', '!active']
+        },
+        events: 'is_editable'
+    }]
+  ]);
   ```
 
 3. Add listeners.
@@ -65,8 +67,22 @@ If you are a front-end developer in need of a lightweight rules engine, this is 
 4. Update facts.
 
   ```javascript
-  RE.updateFacts({status: 3})
+  RE.updateFacts({status: 3});
+  // is_editable event triggered: edit-button is now enabled
   ```
+
+5. Evaluate just a single rule.
+
+```javascript
+RE.evaluate('active', {status: 1})
+.done(function() {
+  alert('Status is active');
+})
+.fail(function() {
+  alert('Status is not active');
+});
+// alerts "Status is active"
+```
 
 For more examples, refer to the tests.
 
