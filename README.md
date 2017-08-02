@@ -73,16 +73,16 @@ If you are developer in need of a lightweight rules engine, this is it.
 
 5. Evaluate just a single rule.
 
-```javascript
-RE.evaluate('active', {status: 1})
-.done(function() {
-  alert('Status is active');
-})
-.fail(function() {
-  alert('Status is not active');
-});
-// alerts "Status is active"
-```
+  ```javascript
+  RE.evaluate('active', {status: 1})
+  .done(function() {
+    alert('Status is active');
+  })
+  .fail(function() {
+    alert('Status is not active');
+  });
+  // alerts "Status is active"
+  ```
 
 For more examples, refer to the tests.
 
@@ -103,4 +103,6 @@ RE.run() // returns $.Deferred()
 RE.evaluate(facts, event) // returns $.Deferred()
 // Evaluates against a set of facts to see if an event is triggered
 // Triggers no other events and does not modify state (idempotent)
+
+// ... more methods under the hood ...
 ```
