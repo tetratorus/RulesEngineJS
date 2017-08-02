@@ -191,8 +191,10 @@ describe('RulesEngine', function() {
     });
     var temp = stringify(r);
     r.evaluate('testEvent', { testFact: true }).always(function() {
-      assert.equal(stringify(r), temp);
-      done();
+      setTimeout(function() {
+        assert.equal(stringify(r), temp);
+        done();
+      }, 100);
     });
   });
   it('should evaluate an event and remain in the same state after evaluation (reject)', function(done) {
@@ -207,8 +209,10 @@ describe('RulesEngine', function() {
     });
     var temp = stringify(r);
     r.evaluate('testEvent', { testFact: false }).always(function() {
-      assert.equal(stringify(r), temp);
-      done();
+      setTimeout(function() {
+        assert.equal(stringify(r), temp);
+        done();
+      }, 100);
     });
   });
   it('should evaluate events with nested conditions without triggering other events', function(done) {
@@ -482,7 +486,6 @@ describe('RulesEngine', function() {
     r.addRule('rule5', function(facts) { return false; });
     r.addRule('rule6', function(facts) { return true; });
     r.addRule('rule7', function(facts) { return false; });
-    debugger;
     r.evaluate('testRule', {testFact: true})
     .done(function() {
       for (var i = 0; i < r.evaluatedRules.length; i++) {
@@ -493,5 +496,52 @@ describe('RulesEngine', function() {
     .fail(function() {
       assert.isOk(false);
     });
+  });
+  it('should queue simultaneous runs', function(done) {
+    var r = new RulesEngine();
+    r.addRule('testRule', function(facts) {
+      return true;
+    })
+    for (var i = 0; i < 10; i++) {
+      r.run()
+    }
+    assert.equal(r.queue.length, 9);
+    done();
+  });
+  it('should not execute next run before a run is completed', function(done) {
+    var r = new RulesEngine();
+    var count = 0;
+    var count2 = 0;
+    r.addRule('testRule', function(facts) {
+      count2++;
+      count++;
+      assert.isAtMost(count, 1);
+      var deferred = $.Deferred();
+      if (facts.testFact) {
+        setTimeout(function() {
+          count--;
+          deferred.resolve();
+        }, 100);
+      } else {
+        setTimeout(function() {
+          deferred.reject();
+        }, 100);
+      }
+      return deferred;
+    });
+    r.facts = {testFact: true};
+    count = 0;
+    count2 = 0;
+    for (var i = 0; i < 3; i++) {
+      r.updateFacts(r.facts).done((function(j) {
+        return function() {
+          assert.isAtMost(count, 1);
+          if (j === 2) {
+            assert.equal(count2, 3);
+            done();
+          }
+        }
+      })(i));
+    }
   });
 });

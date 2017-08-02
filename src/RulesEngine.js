@@ -57,14 +57,17 @@
   RulesEngine.prototype.constructor = RulesEngine;
 
   /** Replaces all the facts in the rules engine and triggers a run. */
-  RulesEngine.prototype.updateFacts = function(facts, value) {
+  RulesEngine.prototype.updateFacts = function(facts) {
+    if (this.isRunningFlg) { return this._enqueue(this.updateFacts, this, [facts]) };
+    this.isRunningFlg = true;
+    var context = this;
     var deferred = jQuery.Deferred();
-    if (this.isRunningFlg) return deferred.reject();
     if (typeof facts === 'object') {
       this.evaluatedRules = {};
       this.facts = facts;
       this._run().always(function() {
         deferred.resolve();
+        context._dequeue();
       });
       return deferred;
     }
@@ -239,6 +242,7 @@
     } else {
       var deferred = $.Deferred();
       var context = this;
+      this.isRunningFlg = true;
       this._run().done(function() {
         deferred.resolve();
         context._dequeue();
@@ -434,14 +438,16 @@
       }
       context.isEvaluatingFlg = false;
       reset = false;
-      deferred.resolve();
-      context._dequeue();
     }
     this.on(event, '_evaluation_event', function(facts) {
       reset && reset(deferred, context);
+      deferred.resolve();
+      context._dequeue();
     });
     this._run('evaluate').always(function() {
       reset && reset(deferred, context);
+      deferred.reject();
+      context._dequeue();
     });
     return deferred;
   };
@@ -458,10 +464,10 @@
     var next = this.queue.shift();
     next[0].apply(next[1], next[2])
     .done(function() {
-      next[4].resolve();
+      next[3].resolve();
     })
     .fail(function() {
-      next[4].reject();
+      next[3].reject();
     });
   }
 
