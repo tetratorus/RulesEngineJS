@@ -45,7 +45,9 @@
     this.rulesMap = {};
     this.evaluatedRules = {};
     this.events = {};
+    this.queue = [];
     this.isEvaluatingFlg = false;
+    this.isRunningFlg = false;
     if (Promise !== undefined) {
       jQuery = Promise;
     } else if (jQuery.Deferred === undefined) {
@@ -57,10 +59,11 @@
   /** Replaces all the facts in the rules engine and triggers a run. */
   RulesEngine.prototype.updateFacts = function(facts, value) {
     var deferred = jQuery.Deferred();
+    if (this.isRunningFlg) return deferred.reject();
     if (typeof facts === 'object') {
       this.evaluatedRules = {};
       this.facts = facts;
-      this.run().always(function() {
+      this._run().always(function() {
         deferred.resolve();
       });
       return deferred;
@@ -229,8 +232,23 @@
     }
   };
 
-  /** Runs the rules engine and emits events accordingly. */
+  /** Wrapper around _run method. */
   RulesEngine.prototype.run = function() {
+    if (this.isRunningFlg) {
+      return this._enqueue(this.run, this, []);
+    } else {
+      var deferred = $.Deferred();
+      var context = this;
+      this._run().done(function() {
+        deferred.resolve();
+        context._dequeue();
+      });
+      return deferred;
+    }
+  }
+
+  /** Runs the rules engine and emits events accordingly. */
+  RulesEngine.prototype._run = function() {
     var exit = false;
     var context = this;
     context.rules.sort(function(a, b) {
@@ -337,32 +355,30 @@
                   if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
                 }
                 deferred.resolve();
-                context.evaluatedRules[rule.name] = true;
               }).fail(function() {
+                context.evaluatedRules[rule.name] = false;
                 if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
-                context.evaluatedRules[rule.name] = false;
                 deferred.reject();
-                context.evaluatedRules[rule.name] = false;
               });
           })
           .fail(function() {
+            context.evaluatedRules[rule.name] = false;
             if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
             deferred.reject();
-            context.evaluatedRules[rule.name] = false;
           });
       } else {
         rule.test(context.facts)
           .done(function() {
+            context.evaluatedRules[rule.name] = true;
             for (var j = 0; j < rule.events.length; j++) {
               if (context.emit(rule.events[j], context.isEvaluatingFlg) === true) exit = true;
             }
             deferred.resolve();
-            context.evaluatedRules[rule.name] = true;
           })
           .fail(function() {
+            context.evaluatedRules[rule.name] = false;
             if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
             deferred.reject();
-            context.evaluatedRules[rule.name] = false;
           });
       }
 
@@ -393,6 +409,9 @@
 	    Used to test a listener against a set of facts.
 	 */
   RulesEngine.prototype.evaluate = function(event, facts) {
+    if (this.isRunningFlg) { return this._enqueue(this.evaluate, this, [event, facts]) };
+    this.isRunningFlg = true;
+    this.isEvaluatingFlg = true;
     var deferred = jQuery.Deferred();
     var tempFacts = this.facts;
     var tempEvaluatedRules = JSON.stringify(this.evaluatedRules);
@@ -405,9 +424,8 @@
       tempPriority = this.rulesMap[event].priority;
       this.rulesMap[event].priority = -Infinity;
     }
-    this.isEvaluatingFlg = true;
     this.evaluatedRules = {};
-    this.on(event, '_evaluation_event', function(facts) {
+    var reset = function(deferred, context) {
       context.off(event, '_evaluation_event');
       context.facts = tempFacts;
       context.evaluatedRules = JSON.parse(tempEvaluatedRules);
@@ -415,20 +433,37 @@
         context.rulesMap[event].priority = tempPriority;
       }
       context.isEvaluatingFlg = false;
+      reset = false;
       deferred.resolve();
+      context._dequeue();
+    }
+    this.on(event, '_evaluation_event', function(facts) {
+      reset && reset(deferred, context);
     });
-    this.run().always(function() {
-      context.off(event, '_evaluation_event');
-      context.facts = tempFacts;
-      context.evaluatedRules = JSON.parse(tempEvaluatedRules);
-      if (tempPriority !== undefined) {
-        context.rulesMap[event].priority = tempPriority;
-      }
-      context.isEvaluatingFlg = false;
-      deferred.reject();
+    this._run('evaluate').always(function() {
+      reset && reset(deferred, context);
     });
     return deferred;
   };
+
+  RulesEngine.prototype._enqueue = function(fn, context, argsArr) {
+    var deferred = $.Deferred();
+    this.queue.push([fn, context, argsArr, deferred]);
+    return deferred;
+  }
+
+  RulesEngine.prototype._dequeue = function() {
+    this.isRunningFlg = false;
+    if (this.queue.length === 0) return;
+    var next = this.queue.shift();
+    next[0].apply(next[1], next[2])
+    .done(function() {
+      next[4].resolve();
+    })
+    .fail(function() {
+      next[4].reject();
+    });
+  }
 
   return RulesEngine;
 });
