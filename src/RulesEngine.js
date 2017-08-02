@@ -46,19 +46,25 @@
     this.evaluatedRules = {};
     this.events = {};
     this.queue = [];
+    this.asyncTimeout = 3000;
     this.isEvaluatingFlg = false;
     this.isRunningFlg = false;
     if (Promise !== undefined) {
       jQuery = Promise;
     } else if (jQuery.Deferred === undefined) {
-      throw new Error ('No jQuery.Deferred or shim found.')
+      throw new Error ('No jQuery.Deferred or shim found.');
     }
   };
   RulesEngine.prototype.constructor = RulesEngine;
 
+  RulesEngine.prototype._log = function(method, logs) {
+    if (typeof console === "undefined" || typeof console[method] !== 'function') return;
+    console[method](logs);
+  }
+
   /** Replaces all the facts in the rules engine and triggers a run. */
   RulesEngine.prototype.updateFacts = function(facts) {
-    if (this.isRunningFlg) { return this._enqueue(this.updateFacts, this, [facts]) };
+    if (this.isRunningFlg) { return this._enqueue(this.updateFacts, this, [facts]); };
     this.isRunningFlg = true;
     var context = this;
     var deferred = jQuery.Deferred();
@@ -76,7 +82,7 @@
   /** Returns a deep copy of an object (can be overriden). */
   RulesEngine.prototype._deepCopy = function(obj) {
     return JSON.parse(JSON.stringify(obj));
-  }
+  };
 
   RulesEngine.prototype.getFacts = function(accessor) {
     var res = this._deepCopy(this.facts);
@@ -87,7 +93,7 @@
       if (res === undefined) return undefined;
     }
     return res;
-  }
+  };
 
   /** Adds a rule, accepts three arguments:
 	    name - name of the rule,
@@ -97,24 +103,61 @@
 	 */
   RulesEngine.prototype.addRule = function(name, evaluator, opts) {
     if (typeof name !== 'string') return;
+    var wrappedEvaluator;
+    var context = this;
     if (typeof evaluator !== 'function') {
-      evaluator = function() {
-        return jQuery.Deferred().resolve();
+      wrappedEvaluator = function() {
+        var deferred = jQuery.Deferred();
+        setTimeout(deferred.resolve, 0);
+        return deferred;
       };
     } else if ((evaluator(this.facts) || {}).then === undefined) {
-      var temp = evaluator;
-      evaluator = (function(orig) {
+      wrappedEvaluator = (function(evaluator) {
         return function(input) {
           var deferred = jQuery.Deferred();
           // convert to async
-          if (orig(input)) {
-            setTimeout(deferred.resolve, 0);
-          } else {
-            setTimeout(deferred.reject, 0);
+          try {
+            if (evaluator(input)) {
+              setTimeout(deferred.resolve, 0);
+            } else {
+              setTimeout(deferred.reject, 0);
+            }
+            return deferred;
+          } catch (e) {
+            context._log('error', e);
+            setTimeout(function() {
+              if (deferred.state() === 'pending') deferred.reject();
+            }, 0);
+            return deferred;
           }
-          return deferred;
         };
-      })(temp);
+      })(evaluator);
+    } else {
+      wrappedEvaluator = function(input) {
+        var deferred = jQuery.Deferred();
+        try {
+          evaluator(input)
+          .done(function() {
+            deferred.resolve();
+          })
+          .fail(function() {
+            deferred.reject();
+          });
+          setTimeout(function() {
+            if (deferred.state() === 'pending') {
+              deferred.reject();
+              context._log('error', 'Timed out for evaluation of function: ' + name);
+            }
+          }, context.asyncTimeout);
+          return deferred;
+        } catch (e) {
+          context._log('error', e);
+          setTimeout(function() {
+            if (deferred.state() === 'pending') deferred.reject();
+          }, 0);
+          return deferred;
+        }
+      };
     }
     if (Array.isArray(opts) || typeof opts !== 'object') {
       opts = {};
@@ -151,7 +194,7 @@
     this.rulesMap[name] = {
       name: name,
       events: opts.events,
-      test: evaluator,
+      test: wrappedEvaluator,
       priority: opts.priority,
       conditions: opts.conditions // TODO: check for circular dependencies
     };
@@ -240,7 +283,7 @@
     if (this.isRunningFlg) {
       return this._enqueue(this.run, this, []);
     } else {
-      var deferred = $.Deferred();
+      var deferred = jQuery.Deferred();
       var context = this;
       this.isRunningFlg = true;
       this._run().done(function() {
@@ -249,7 +292,7 @@
       });
       return deferred;
     }
-  }
+  };
 
   /** Runs the rules engine and emits events accordingly. */
   RulesEngine.prototype._run = function() {
@@ -413,7 +456,7 @@
 	    Used to test a listener against a set of facts.
 	 */
   RulesEngine.prototype.evaluate = function(event, facts) {
-    if (this.isRunningFlg) { return this._enqueue(this.evaluate, this, [event, facts]) };
+    if (this.isRunningFlg) { return this._enqueue(this.evaluate, this, [event, facts]); };
     this.isRunningFlg = true;
     this.isEvaluatingFlg = true;
     var deferred = jQuery.Deferred();
@@ -438,7 +481,7 @@
       }
       context.isEvaluatingFlg = false;
       reset = false;
-    }
+    };
     this.on(event, '_evaluation_event', function(facts) {
       reset && reset(deferred, context);
       deferred.resolve();
@@ -453,23 +496,23 @@
   };
 
   RulesEngine.prototype._enqueue = function(fn, context, argsArr) {
-    var deferred = $.Deferred();
+    var deferred = jQuery.Deferred();
     this.queue.push([fn, context, argsArr, deferred]);
     return deferred;
-  }
+  };
 
   RulesEngine.prototype._dequeue = function() {
     this.isRunningFlg = false;
     if (this.queue.length === 0) return;
     var next = this.queue.shift();
     next[0].apply(next[1], next[2])
-    .done(function() {
-      next[3].resolve();
-    })
-    .fail(function() {
-      next[3].reject();
-    });
-  }
+      .done(function() {
+        next[3].resolve();
+      })
+      .fail(function() {
+        next[3].reject();
+      });
+  };
 
   return RulesEngine;
 });
