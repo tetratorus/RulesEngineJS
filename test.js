@@ -24,7 +24,7 @@ try {
 
 /** Tests */
 describe('RulesEngine', function() {
-  this.timeout(5000);
+  this.timeout(1000);
   it('should run', function(done) {
     var r = new RulesEngine();
     assert.equal(typeof r.run, 'function');
@@ -174,9 +174,12 @@ describe('RulesEngine', function() {
     r.addEvent('testEvent');
     r.addEvent('otherEvent');
     r.on('testEvent', 'testEventListener', function() { assert.isOk(false); });
-    r.on('otherEvent', 'otherEventListener', function() { assert.isOk(false); });
+    r.on('otherEvent', 'otherEventListener', function() { debugger; assert.isOk(false); });
+    debugger;
     r.evaluate('testEvent', { testFact: true }).done(function() {
-      done();
+      setTimeout(function() {
+        !r.isRunningFlg && done();
+      },10);
     });
   });
   it('should evaluate an event and remain in the same state after evaluation (resolve)', function(done) {
@@ -553,7 +556,6 @@ describe('RulesEngine', function() {
     r.addRule('testRule', function(facts) {
       count++;
       if (count > 1) {
-        debugger;
         throw new Error('testRule errored out');
       }
       return facts.testFacts;
@@ -576,8 +578,8 @@ describe('RulesEngine', function() {
       }
     });
   });
+  this.timeout(5000);
   it('should timeout and reject an async rule evaluation if it\'s too slow (>3s)', function(done) {
-    debugger;
     var r = new RulesEngine();
     var flag = false;
     r._log = function() { flag = true; };
@@ -592,4 +594,22 @@ describe('RulesEngine', function() {
     })
     r.run();
   });
+  this.timeout(11000);
+  it('should timeout if the engine is running for too long (>10s)', function(done) {
+    var r = new RulesEngine();
+    var flag = false;
+    r._log = function() { flag = true; };
+    var flag2 = false;
+    r.addRule('rule1', function() {flag2 && console.log('rule1 eval'); return true;}, {conditions: 'rule2'});
+    r.addRule('rule2', function() {flag2 && console.log('rule2 eval'); return true;}, {conditions: 'rule1'});
+    flag2 = true;
+    r.run().always(function() {
+      if (flag) {
+        setTimeout(function() {
+          !r.isRunningFlg && done();
+        }, 10);
+      }
+    });
+  });
+  this.timeout(1000);
 });

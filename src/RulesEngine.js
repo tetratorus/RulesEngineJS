@@ -47,6 +47,7 @@
     this.events = {};
     this.queue = [];
     this.asyncTimeout = 3000;
+    this.engineTimeout = 10000;
     this.isEvaluatingFlg = false;
     this.isRunningFlg = false;
     if (Promise !== undefined) {
@@ -286,7 +287,7 @@
       var deferred = jQuery.Deferred();
       var context = this;
       this.isRunningFlg = true;
-      this._run().done(function() {
+      this._run().always(function() {
         deferred.resolve();
         context._dequeue();
       });
@@ -449,6 +450,12 @@
     looper(0, function(index) {
       return evaluateRule(context.rulesMap[context.rules[index]]);
     });
+    setTimeout(function() {
+      if (deferred.state() === 'pending') {
+        context._log('error', 'Rules engine timed out.');
+        deferred.reject();
+      }
+    }, this.engineTimeout);
     return deferred;
   };
 
@@ -472,7 +479,10 @@
       this.rulesMap[event].priority = -Infinity;
     }
     this.evaluatedRules = {};
-    var reset = function(deferred, context) {
+    this.on(event, '_evaluation_event', function(facts) {
+      deferred.resolve();
+    });
+    this._run('evaluate').always(function() {
       context.off(event, '_evaluation_event');
       context.facts = tempFacts;
       context.evaluatedRules = JSON.parse(tempEvaluatedRules);
@@ -480,16 +490,9 @@
         context.rulesMap[event].priority = tempPriority;
       }
       context.isEvaluatingFlg = false;
-      reset = false;
-    };
-    this.on(event, '_evaluation_event', function(facts) {
-      reset && reset(deferred, context);
-      deferred.resolve();
-      context._dequeue();
-    });
-    this._run('evaluate').always(function() {
-      reset && reset(deferred, context);
-      deferred.reject();
+      if (deferred.state() === 'pending') {
+        deferred.reject();
+      }
       context._dequeue();
     });
     return deferred;
