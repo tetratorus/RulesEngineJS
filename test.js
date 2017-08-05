@@ -559,13 +559,13 @@ describe('RulesEngine', function() {
         throw new Error('testRule errored out');
       }
       return facts.testFacts;
-    }, { priority: 2 });
+    }, { priority: 2 , toggle: false});
     r.addRule('rule1', function(facts) {
       return true;
-    }, { priority: 1 });
+    }, { priority: 1 , toggle: false});
     r.addRule('rule2', function(facts) {
       return true;
-    }, { priority: 3})
+    }, { priority: 3, toggle: false});
     r.on('rule1', 'rule1_handler', function() { count2++; });
     r.on('rule2', 'rule2_handler', function() { count3++; });
     r.updateFacts({ testFact: true });
@@ -573,13 +573,12 @@ describe('RulesEngine', function() {
       if (count === 3 && count2 === 2 && count3 === 2) {
         done();
       } else {
-        console.log(count, count2, count3);
         assert.isOk(false);
       }
     });
   });
-  this.timeout(5000);
-  it('should timeout and reject an async rule evaluation if it\'s too slow (>3s)', function(done) {
+  this.timeout(3500);
+  it('should timeout and reject an async rule evaluation if it\'s too slow (default: 3s)', function(done) {
     var r = new RulesEngine();
     var flag = false;
     r._log = function() { flag = true; };
@@ -594,9 +593,10 @@ describe('RulesEngine', function() {
     })
     r.run();
   });
-  this.timeout(11000);
-  it('should timeout if the engine is running for too long (>10s)', function(done) {
+  this.timeout(3500);
+  it('should timeout if the engine is running for too long (default: 10s)', function(done) {
     var r = new RulesEngine();
+    r.engineTimeout = 3000;
     var flag = false;
     r._log = function() { flag = true; };
     var flag2 = false;
@@ -612,4 +612,32 @@ describe('RulesEngine', function() {
     });
   });
   this.timeout(1000);
+  it('should only trigger events for a rule if a previous run did not trigger the rule', function(done) {
+    var r = new RulesEngine();
+    var count = 0;
+    r.addRule('testRule', function(facts) { return facts.testFact });
+    r.on('testRule', 'testFact_handler', function() { count++ });
+    count = 0;
+    r.updateFacts({testFact: true});
+    r.updateFacts({testFact: true});
+    r.updateFacts({testFact: false});
+    r.updateFacts({testFact: true}).done(function() {
+      assert.equal(count, 2);
+      done();
+    });
+  });
+  it('should triggle multiple times for a rule if toggle is set to false', function(done) {
+    var r = new RulesEngine();
+    var count = 0;
+    r.addRule('testRule', function(facts) { return facts.testFact }, {toggle: false});
+    r.on('testRule', 'testFact_handler', function() { count++ });
+    count = 0;
+    r.updateFacts({testFact: true});
+    r.updateFacts({testFact: true});
+    r.updateFacts({testFact: false});
+    r.updateFacts({testFact: true}).done(function() {
+      assert.equal(count, 3);
+      done();
+    });
+  })
 });

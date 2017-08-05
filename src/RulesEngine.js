@@ -44,6 +44,7 @@
     this.rules = [];
     this.rulesMap = {};
     this.evaluatedRules = {};
+    this.prevValues = {};
     this.events = {};
     this.queue = [];
     this.asyncTimeout = 3000;
@@ -166,6 +167,9 @@
     if (opts.priority === undefined) {
       opts.priority = 9;
     }
+    if (opts.toggle === undefined) {
+      opts.toggle = true;
+    }
     if (!Array.isArray(opts.events)) {
       if (opts.events !== undefined) {
         opts.events = [opts.events];
@@ -197,7 +201,8 @@
       events: opts.events,
       test: wrappedEvaluator,
       priority: opts.priority,
-      conditions: opts.conditions // TODO: check for circular dependencies
+      conditions: opts.conditions, // TODO: check for circular dependencies
+      toggle: opts.toggle
     };
   };
 
@@ -392,22 +397,32 @@
         return deferred;
       }
       context.evaluatedRules[rule.name] = deferred;
+
+      var test = function(rule, context, deferred) {
+        rule.test(context.facts)
+        .done(function() {
+          context.evaluatedRules[rule.name] = true;
+          if (!rule.toggle || context.prevValues[rule.name] !== true ||
+          (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined)) {
+            for (var i = 0; i < rule.events.length; i++) {
+              if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
+            }
+          }
+          context.prevValues[rule.name] = true;
+          deferred.resolve();
+        }).fail(function() {
+          context.evaluatedRules[rule.name] = false;
+          if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
+          context.prevValues[rule.name] = false;
+          deferred.reject();
+        });
+      }
+
       // check conditions
       if (rule.conditions !== undefined) {
         evaluateConditions(rule.conditions)
           .done(function() {
-            rule.test(context.facts)
-              .done(function() {
-                context.evaluatedRules[rule.name] = true;
-                for (var i = 0; i < rule.events.length; i++) {
-                  if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
-                }
-                deferred.resolve();
-              }).fail(function() {
-                context.evaluatedRules[rule.name] = false;
-                if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
-                deferred.reject();
-              });
+            test(rule, context, deferred);
           })
           .fail(function() {
             context.evaluatedRules[rule.name] = false;
@@ -415,19 +430,7 @@
             deferred.reject();
           });
       } else {
-        rule.test(context.facts)
-          .done(function() {
-            context.evaluatedRules[rule.name] = true;
-            for (var j = 0; j < rule.events.length; j++) {
-              if (context.emit(rule.events[j], context.isEvaluatingFlg) === true) exit = true;
-            }
-            deferred.resolve();
-          })
-          .fail(function() {
-            context.evaluatedRules[rule.name] = false;
-            if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
-            deferred.reject();
-          });
+        test(rule, context, deferred);
       }
 
       return deferred;
@@ -469,6 +472,7 @@
     var deferred = jQuery.Deferred();
     var tempFacts = this.facts;
     var tempEvaluatedRules = JSON.stringify(this.evaluatedRules);
+    var tempPrevValues = JSON.stringify(this.prevValues);
     var tempPriority;
     var context = this;
     if (facts !== undefined) {
@@ -479,6 +483,7 @@
       this.rulesMap[event].priority = -Infinity;
     }
     this.evaluatedRules = {};
+    this.prevValues = {};
     this.on(event, '_evaluation_event', function(facts) {
       deferred.resolve();
     });
@@ -486,6 +491,7 @@
       context.off(event, '_evaluation_event');
       context.facts = tempFacts;
       context.evaluatedRules = JSON.parse(tempEvaluatedRules);
+      context.prevValues = JSON.parse(tempPrevValues);
       if (tempPriority !== undefined) {
         context.rulesMap[event].priority = tempPriority;
       }
