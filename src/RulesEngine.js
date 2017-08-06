@@ -26,7 +26,7 @@
       });
     }
   } catch (e) {
-      jQuery = !function(e,n){if("function"==typeof define&&define.amd)define(n);else{var r=n();"object"!=typeof module?e[r.name]=r:module.exports=r}}(this,function(){var e="done fail isResolved isRejected promise then always pipe".split(" "),n=[].slice,r={_Deferred:function(){var e,n,r,t=[],i={done:function(){if(!r){var n,o,f,l,s,c=arguments;for(e&&(s=e,e=0),n=0,o=c.length;n<o;n++)l=typeof(f=c[n]),Array.isArray(f)&&(l="array"),"array"===l?i.done.apply(i,f):"function"===l&&t.push(f);s&&i.resolveWith(s[0],s[1])}return this},resolveWith:function(i,o){if(!r&&!e&&!n){o=o||[],n=1;try{for(;t[0];)t.shift().apply(i,o)}finally{e=[i,o],n=0}}return this},resolve:function(){return i.resolveWith(this,arguments),this},isResolved:function(){return!(!n&&!e)},cancel:function(){return r=1,t=[],this}};return i},Deferred:function(n){var t,i=r._Deferred(),o=r._Deferred(),f={then:function(e,n){return i.done(e).fail(n),this},always:function(){return i.done.apply(i,arguments).fail.apply(this,arguments)},fail:o.done,rejectWith:o.resolveWith,reject:o.resolve,isRejected:o.isResolved,pipe:function(e,n){return r.Deferred(function(r){var t={done:[e,"resolve"],fail:[n,"reject"]};for(var o in t)!function(e,n){var t,o=n[0],f=n[1];"function"==typeof o?i[e](function(){(t=o.apply(this,arguments))&&"function"==typeof t.promise?t.promise().then(r.resolve,r.reject):r[f](t)}):i[e](r[f])}(o,t[o])}).promise()},promise:function(n){if(null==n){if(t)return t;t=n={}}for(var r=e.length;r--;)n[e[r]]=i[e[r]];return n}};for(var l in f)i[l]=f[l];return i.done(o.cancel).fail(i.cancel),delete i.cancel,n&&n.call(i,i),i},when:function(e){var t=arguments,i=0,o=t.length,f=o,l=o<=1&&e&&"function"==typeof e.promise?e:r.Deferred();if(o>1){for(;i<o;i++)t[i]&&"function"==typeof t[i].promise?t[i].promise().then(function(e){return function(r){t[e]=arguments.length>1?n.call(arguments,0):r,--f||l.resolveWith(l,n.call(t,0))}}(i),l.reject):--f;f||l.resolveWith(l,t)}else l!==e&&l.resolveWith(l,o?[e]:[]);return l.promise()}};return r});
+    jQuery = !function(e,n){if("function"==typeof define&&define.amd)define(n);else{var r=n();"object"!=typeof module?e[r.name]=r:module.exports=r}}(this,function(){var e="done fail isResolved isRejected promise then always pipe".split(" "),n=[].slice,r={_Deferred:function(){var e,n,r,t=[],i={done:function(){if(!r){var n,o,f,l,s,c=arguments;for(e&&(s=e,e=0),n=0,o=c.length;n<o;n++)l=typeof(f=c[n]),Array.isArray(f)&&(l="array"),"array"===l?i.done.apply(i,f):"function"===l&&t.push(f);s&&i.resolveWith(s[0],s[1])}return this},resolveWith:function(i,o){if(!r&&!e&&!n){o=o||[],n=1;try{for(;t[0];)t.shift().apply(i,o)}finally{e=[i,o],n=0}}return this},resolve:function(){return i.resolveWith(this,arguments),this},isResolved:function(){return!(!n&&!e)},cancel:function(){return r=1,t=[],this}};return i},Deferred:function(n){var t,i=r._Deferred(),o=r._Deferred(),f={then:function(e,n){return i.done(e).fail(n),this},always:function(){return i.done.apply(i,arguments).fail.apply(this,arguments)},fail:o.done,rejectWith:o.resolveWith,reject:o.resolve,isRejected:o.isResolved,pipe:function(e,n){return r.Deferred(function(r){var t={done:[e,"resolve"],fail:[n,"reject"]};for(var o in t)!function(e,n){var t,o=n[0],f=n[1];"function"==typeof o?i[e](function(){(t=o.apply(this,arguments))&&"function"==typeof t.promise?t.promise().then(r.resolve,r.reject):r[f](t)}):i[e](r[f])}(o,t[o])}).promise()},promise:function(n){if(null==n){if(t)return t;t=n={}}for(var r=e.length;r--;)n[e[r]]=i[e[r]];return n}};for(var l in f)i[l]=f[l];return i.done(o.cancel).fail(i.cancel),delete i.cancel,n&&n.call(i,i),i},when:function(e){var t=arguments,i=0,o=t.length,f=o,l=o<=1&&e&&"function"==typeof e.promise?e:r.Deferred();if(o>1){for(;i<o;i++)t[i]&&"function"==typeof t[i].promise?t[i].promise().then(function(e){return function(r){t[e]=arguments.length>1?n.call(arguments,0):r,--f||l.resolveWith(l,n.call(t,0))}}(i),l.reject):--f;f||l.resolveWith(l,t)}else l!==e&&l.resolveWith(l,o?[e]:[]);return l.promise()}};return r});
   }
 
   //***************************************************************//
@@ -62,7 +62,7 @@
   RulesEngine.prototype._log = function(method, logs) {
     if (typeof console === "undefined" || typeof console[method] !== 'function') return;
     console[method](logs);
-  }
+  };
 
   /** Replaces all the facts in the rules engine and triggers a run. */
   RulesEngine.prototype.updateFacts = function(facts) {
@@ -138,12 +138,12 @@
         var deferred = jQuery.Deferred();
         try {
           evaluator(input)
-          .done(function() {
-            deferred.resolve();
-          })
-          .fail(function() {
-            deferred.reject();
-          });
+            .done(function() {
+              deferred.resolve();
+            })
+            .fail(function() {
+              deferred.reject();
+            });
           setTimeout(function() {
             if (deferred.state() === 'pending') {
               deferred.reject();
@@ -303,7 +303,10 @@
   RulesEngine.prototype._run = function() {
     var exit = false;
     var context = this;
-    context.prevValues = JSON.parse(JSON.stringify(context.evaluatedRules));
+    context.prevValues = {};
+    for (var rule in context.evaluatedRules) {
+      context.prevValues[rule] = context.evaluatedRules[rule];
+    }
     context.evaluatedRules = {};
     context.rules.sort(function(a, b) {
       if (context.rulesMap[a].priority > context.rulesMap[b].priority) return 1;
@@ -401,21 +404,21 @@
 
       var test = function(rule, context, deferred) {
         rule.test(context.facts)
-        .done(function() {
-          context.evaluatedRules[rule.name] = true;
-          if (!rule.toggle || context.prevValues[rule.name] !== true ||
+          .done(function() {
+            context.evaluatedRules[rule.name] = true;
+            if (!rule.toggle || context.prevValues[rule.name] !== true ||
           (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined)) {
-            for (var i = 0; i < rule.events.length; i++) {
-              if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
+              for (var i = 0; i < rule.events.length; i++) {
+                if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
+              }
             }
-          }
-          deferred.resolve();
-        }).fail(function() {
-          context.evaluatedRules[rule.name] = false;
-          if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
-          deferred.reject();
-        });
-      }
+            deferred.resolve();
+          }).fail(function() {
+            context.evaluatedRules[rule.name] = false;
+            if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
+            deferred.reject();
+          });
+      };
 
       // check conditions
       if (rule.conditions !== undefined) {
@@ -470,8 +473,14 @@
     this.isEvaluatingFlg = true;
     var deferred = jQuery.Deferred();
     var tempFacts = this.facts;
-    var tempEvaluatedRules = JSON.stringify(this.evaluatedRules);
-    var tempPrevValues = JSON.stringify(this.prevValues);
+    var tempEvaluatedRules = {};
+    for (var rule in this.evaluatedRules) {
+      tempEvaluatedRules[rule] = this.evaluatedRules[rule];
+    }
+    var tempPrevValues = {};
+    for (var rule in this.prevValues) {
+      tempPrevValues[rule] = this.prevValues[rule];
+    }
     var tempPriority;
     var context = this;
     if (facts !== undefined) {
@@ -489,8 +498,8 @@
     this._run('evaluate').always(function() {
       context.off(event, '_evaluation_event');
       context.facts = tempFacts;
-      context.evaluatedRules = JSON.parse(tempEvaluatedRules);
-      context.prevValues = JSON.parse(tempPrevValues);
+      context.evaluatedRules = tempEvaluatedRules;
+      context.prevValues = tempPrevValues;
       if (tempPriority !== undefined) {
         context.rulesMap[event].priority = tempPriority;
       }
