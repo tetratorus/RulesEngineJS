@@ -45,6 +45,7 @@
     this.rulesMap = {};
     this.evaluatedRules = {};
     this.prevValues = {};
+    this.prevToggle = {};
     this.events = {};
     this.queue = [];
     this.asyncTimeout = 3000;
@@ -203,6 +204,7 @@
       conditions: opts.conditions, // TODO: check for circular dependencies
       toggle: opts.toggle
     };
+    this.prevToggle[name] = new Date();
   };
 
   /** Adds many rules */
@@ -311,6 +313,8 @@
     context.rules.sort(function(a, b) {
       if (context.rulesMap[a].priority > context.rulesMap[b].priority) return 1;
       if (context.rulesMap[a].priority < context.rulesMap[b].priority) return -1;
+      if (context.prevToggle[a] < context.prevToggle[b]) return 1;
+      if (context.prevToggle[a] > context.prevToggle[b]) return -1;
       return 0;
     });
     var evaluateConditions = function(conditions) {
@@ -408,6 +412,7 @@
             context.evaluatedRules[rule.name] = true;
             if (!rule.toggle || context.prevValues[rule.name] !== true ||
           (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined)) {
+              context.prevToggle[rule.name] = new Date();
               for (var i = 0; i < rule.events.length; i++) {
                 if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
               }
@@ -481,6 +486,10 @@
     for (var rule in this.prevValues) {
       tempPrevValues[rule] = this.prevValues[rule];
     }
+    var tempPrevToggle = {};
+    for (var rule in this.prevToggle) {
+      tempPrevToggle[rule] = this.prevToggle[rule];
+    }
     var tempPriority;
     var context = this;
     if (facts !== undefined) {
@@ -500,6 +509,7 @@
       context.facts = tempFacts;
       context.evaluatedRules = tempEvaluatedRules;
       context.prevValues = tempPrevValues;
+      context.prevToggle = tempPrevToggle;
       if (tempPriority !== undefined) {
         context.rulesMap[event].priority = tempPriority;
       }
