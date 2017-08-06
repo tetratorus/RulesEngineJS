@@ -619,6 +619,7 @@ describe('RulesEngine', function() {
     r.on('testRule', 'testFact_handler', function() { count++ });
     count = 0;
     r.updateFacts({testFact: true});
+    debugger;
     r.updateFacts({testFact: true});
     r.updateFacts({testFact: false});
     r.updateFacts({testFact: true}).done(function() {

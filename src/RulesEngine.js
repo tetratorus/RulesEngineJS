@@ -71,7 +71,6 @@
     var context = this;
     var deferred = jQuery.Deferred();
     if (typeof facts === 'object') {
-      this.evaluatedRules = {};
       this.facts = facts;
       this._run().always(function() {
         deferred.resolve();
@@ -304,6 +303,8 @@
   RulesEngine.prototype._run = function() {
     var exit = false;
     var context = this;
+    context.prevValues = JSON.parse(JSON.stringify(context.evaluatedRules));
+    context.evaluatedRules = {};
     context.rules.sort(function(a, b) {
       if (context.rulesMap[a].priority > context.rulesMap[b].priority) return 1;
       if (context.rulesMap[a].priority < context.rulesMap[b].priority) return -1;
@@ -408,12 +409,10 @@
               if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
             }
           }
-          context.prevValues[rule.name] = true;
           deferred.resolve();
         }).fail(function() {
           context.evaluatedRules[rule.name] = false;
           if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
-          context.prevValues[rule.name] = false;
           deferred.reject();
         });
       }
