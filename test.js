@@ -667,4 +667,12 @@ describe('RulesEngine', function() {
       done();
     }, 200)
   });
+  it('should automatically assign handler if none is given', function(done) {
+    var r = new RulesEngine();
+    r.addRule('rule1', function() { return true; });
+    var fn = function() { done(); }
+    r.on('rule1', fn);
+    assert.equal(r.events.rule1.bound.rule1, fn)
+    r.run();
+  })
 });

@@ -271,6 +271,10 @@
 
   /** Binds a listener to an event. */
   RulesEngine.prototype.on = function(event, name, handler) {
+    if (handler === undefined && typeof name === 'function') {
+      handler = name;
+      name = event;
+    }
     this.events[event].bound[name] = handler;
   };
 
