@@ -602,8 +602,8 @@ describe('RulesEngine', function() {
     var flag = false;
     r._log = function() { flag = true; };
     var flag2 = false;
-    r.addRule('rule1', function() {flag2 && console.log('rule1 eval'); return true;}, {conditions: 'rule2'});
-    r.addRule('rule2', function() {flag2 && console.log('rule2 eval'); return true;}, {conditions: 'rule1'});
+    r.addRule('rule1', function() {flag2 && console.log('should not reach rule1 evaluator'); return true;}, {conditions: 'rule2'});
+    r.addRule('rule2', function() {flag2 && console.log('should not reach rule2 evaluator'); return true;}, {conditions: 'rule1'});
     flag2 = true;
     r.run().always(function() {
       if (flag) {
@@ -650,22 +650,25 @@ describe('RulesEngine', function() {
     setTimeout(function() {
       r.addRule('rule2', function(facts) { order.push(2); return facts.fact2; });
       assert.deepEqual(order, [1,2]);
-      assert.notEqual(r.prevToggle.rule1, r.prevToggle.rule2);
-      order.splice(0)
+      assert.isAtLeast(r.prevToggle.rule2 - r.prevToggle.rule1, 200);
+      order.splice(0);
       r.updateFacts({fact1: false, fact2: true}).done(function() {
         assert.deepEqual(order, [2,1]);
-        assert.equal(r.prevToggle.rule1, r.prevToggle.rule2);
-        order.splice(0)
+        order.splice(0);
         setTimeout(function() {
           r.updateFacts({fact1: true, fact2: true}).done(function() {
-            assert.deepEqual(order, [1,2]);
-            assert.notEqual(r.prevToggle.rule1, r.prevToggle.rule2);
-            done();
+            assert.isAtLeast(r.prevToggle.rule1 - r.prevToggle.rule2, 200);
+            order.splice(0);
+            setTimeout(function() {
+                r.updateFacts({fact1: true, fact2: true}).done(function() {
+                  assert.deepEqual(order, [1,2]);
+                  done();
+                })
+            }, 200);
           });
         }, 200);
-      })
-      done();
-    }, 200)
+      });
+    }, 200);
   });
   it('should automatically assign handler if none is given', function(done) {
     var r = new RulesEngine();
@@ -674,5 +677,38 @@ describe('RulesEngine', function() {
     r.on('rule1', fn);
     assert.equal(r.events.rule1.bound.rule1, fn)
     r.run();
-  })
+  });
+  it('should allow toggling prioritization even for rules with toggle:false', function(done) {
+    var r = new RulesEngine();
+    r.addRule('rule1', function(facts) { return facts.fact1; }, {toggle: false});
+    r.addRule('rule2', function(facts) { return facts.fact2; }, {toggle: false});
+    var order = [];
+    r.on('rule1', function() { order.push(1); });
+    r.on('rule2', function() { order.push(2); });
+    r.updateFacts({fact1: true, fact2: false});
+    order.splice(0);
+    setTimeout(function() {
+      r.updateFacts({fact1: true, fact2: true}).done(function() {
+        order.splice(0);
+      });
+    }, 200);
+    setTimeout(function() {
+      r.updateFacts({fact1: true, fact2: true}).done(function() {
+        setTimeout(function() {
+          assert.deepEqual(order, [2, 1]);
+          r.updateFacts({fact1: false, fact2: true}).done(function() {
+            order.splice(0);
+          });
+        }, 50);
+      });
+    }, 400);
+    setTimeout(function() {
+      r.updateFacts({fact1: true, fact2: true}).done(function() {
+        setTimeout(function() {
+          assert.deepEqual(order, [1, 2]);
+          done();
+        }, 50);
+      });
+    }, 600);
+  });
 });

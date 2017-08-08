@@ -414,9 +414,9 @@
         rule.test(context.facts)
           .done(function() {
             context.evaluatedRules[rule.name] = true;
+            if (context.prevValues[rule.name] !== true) context.prevToggle[rule.name] = new Date();
             if (!rule.toggle || context.prevValues[rule.name] !== true ||
           (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined)) {
-              if (rule.toggle) context.prevToggle[rule.name] = new Date();
               for (var i = 0; i < rule.events.length; i++) {
                 if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
               }
@@ -424,6 +424,7 @@
             deferred.resolve();
           }).fail(function() {
             context.evaluatedRules[rule.name] = false;
+            if (context.prevValues[rule.name] !== false) context.prevToggle[rule.name] = new Date();
             if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
             deferred.reject();
           });
