@@ -12,6 +12,32 @@
   }
   scope[instance.name] = instance;
 })(this, function() {
+  // fast method of yielding execution (instead of setTimeout)
+  var soon = (function() {
+		var fq = [];
+		function callQueue() {
+			while(fq.length) {
+				fq[0]();
+				fq.shift();
+			}
+		}
+		var cqYield = (function() {
+      if (typeof MutationObserver !== "undefined") {
+        var dd = document.createElement("div");
+        var mo = new MutationObserver(callQueue);
+        mo.observe(dd, { attributes: true });
+        return function(fn) { dd.setAttribute("a",0); }
+      }
+      if (typeof setImmediate !== "undefined") {
+        return function() { setImmediate(callQueue) }
+      }
+      return function() { setTimeout(callQueue,0) }
+    })();
+    return function(fn) {
+      fq.push(fn);
+      if(fq.length == 1) cqYield();
+    };
+  })();
   var jQuery;
   try {
     if (typeof $ === 'undefined') {
@@ -110,7 +136,7 @@
     if (typeof evaluator !== 'function') {
       wrappedEvaluator = function() {
         var deferred = jQuery.Deferred();
-        setTimeout(deferred.resolve, 0);
+        soon(deferred.resolve);
         return deferred;
       };
     } else if ((evaluator(this.facts) || {}).then === undefined) {
@@ -120,16 +146,16 @@
           // convert to async
           try {
             if (evaluator(input)) {
-              setTimeout(deferred.resolve, 0);
+              soon(deferred.resolve);
             } else {
-              setTimeout(deferred.reject, 0);
+              soon(deferred.reject);
             }
             return deferred;
           } catch (e) {
             context._log('error', e);
-            setTimeout(function() {
+            soon(function() {
               if (deferred.state() === 'pending') deferred.reject();
-            }, 0);
+            });
             return deferred;
           }
         };
@@ -154,9 +180,9 @@
           return deferred;
         } catch (e) {
           context._log('error', e);
-          setTimeout(function() {
+          soon(function() {
             if (deferred.state() === 'pending') deferred.reject();
-          }, 0);
+          });
           return deferred;
         }
       };
