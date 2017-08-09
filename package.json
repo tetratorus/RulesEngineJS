@@ -1,14 +1,14 @@
 {
   "name": "rulesenginejs",
-  "version": "1.21.0",
+  "version": "1.22.0",
   "description": "A simple front-end rules engine",
   "main": "dist/rulesengine.min.js",
   "scripts": {
     "test": "./node_modules/mocha/bin/mocha test.js",
-    "build": "npm test && ./node_modules/minify/bin/minify.js ./src/RulesEngine.js > ./dist/rulesengine.min.js",
-    "debug": "./node_modules/mocha/bin/mocha --inspect-brk test.js",
+    "build": "npm test && node ./node_modules/uglify-js/bin/uglifyjs --mangle reserved=[RulesEngine,jQuery,$,root,define,amd,module,exports] ./src/RulesEngine.js > ./dist/rulesengine.min.js",
+    "debug": "node ./node_modules/mocha/bin/mocha --inspect-brk test.js",
     "push": "npm run build && npm publish && git push origin master",
-    "build_deferred": "./node_modules/minify/bin/minify.js ./src/Deferred.js > ./dist/deferred.min.js"
+    "build_deferred": "node ./node_modules/uglify-js/bin/uglifyjs --mangle reserved=[jQuery,$,root,define,amd,module,exports,Deferred,done,fail,isResolved,isRejected,promise,then,always,pipe] ./src/Deferred.js > ./dist/deferred.min.js"
   },
   "author": "tetratorus",
   "license": "MIT",
@@ -18,7 +18,7 @@
     "jquery": "^3.2.1",
     "jsdom-no-contextify": "^3.1.0",
     "json-stable-stringify": "^1.0.1",
-    "minify": "^3.0.0",
-    "mocha": "^3.4.2"
+    "mocha": "^3.4.2",
+    "uglify-js": "^3.0.27"
   }
 }
