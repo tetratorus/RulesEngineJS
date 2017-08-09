@@ -13,10 +13,8 @@ try {
     $ = require('jquery')(window);
   });
 } catch (e) {
-  console.error('No jQuery found')
+  console.error('No jQuery found');
 }
-
-
 
 /** Tests */
 describe('RulesEngine', function() {
@@ -47,9 +45,9 @@ describe('RulesEngine', function() {
     r.addRule('otherRule', function(facts) { return false; });
     r.addEvent('testEvent');
     r.on('testEvent', '_log_testEvent', function() { assert.isOk(false); });
-    r.updateFacts({ testFact: true }).then(function() {
+    r.updateFacts({ testFact: true }).done(function() {
       done();
-    }, function() { assert.isOk(false); });
+    });
   });
   it('should accept multiple conditions (all)', function(done) {
     var r = new RulesEngine();
@@ -85,9 +83,9 @@ describe('RulesEngine', function() {
     r.addRule('thatRule', function(facts) { return false; });
     r.addEvent('testEvent');
     r.on('testEvent', '_log_testEvent', function() { assert.isOk(false); });
-    r.updateFacts({ testFact: true }).then(function() {
+    r.updateFacts({ testFact: true }).done(function() {
       done();
-    }, function() { assert.isOk(false); });
+    });
   });
   it('should fail if multiple conditions are not met (all, one true one false)', function(done) {
     var r = new RulesEngine();
@@ -96,9 +94,9 @@ describe('RulesEngine', function() {
     r.addRule('thatRule', function(facts) { return false; });
     r.addEvent('testEvent');
     r.on('testEvent', '_log_testEvent', function() { assert.isOk(false); });
-    r.updateFacts({ testFact: true }).then(function() {
+    r.updateFacts({ testFact: true }).done(function() {
       done();
-    }, function() { assert.isOk(false); });
+    });
   });
   it('should fail if multiple conditions are not met (all, both false)', function(done) {
     var r = new RulesEngine();
@@ -107,9 +105,9 @@ describe('RulesEngine', function() {
     r.addRule('thatRule', function(facts) { return false; });
     r.addEvent('testEvent');
     r.on('testEvent', '_log_testEvent', function() { assert.isOk(false); });
-    r.updateFacts({ testFact: true }).then(function() {
+    r.updateFacts({ testFact: true }).done(function() {
       done();
-    }, function() { assert.isOk(false); });
+    });
   });
   it('should accept nested conditions', function(done) {
     var r = new RulesEngine();
@@ -129,9 +127,9 @@ describe('RulesEngine', function() {
     r.addRule('rule3', function(facts) { return false; });
     r.addEvent('testEvent');
     r.on('testEvent', '_log_testEvent', function() { assert.isOk(false); });
-    r.updateFacts({ testFact: true }).then(function() {
+    r.updateFacts({ testFact: true }).done(function() {
       done();
-    }, function() { assert.isOk(false); });
+    });
   });
   it('should accept deeply nested conditions', function(done) {
     var r = new RulesEngine();
@@ -149,7 +147,7 @@ describe('RulesEngine', function() {
             }
           ]
         },
-          'rule1'
+        'rule1'
         ]
       }
     });
@@ -171,11 +169,11 @@ describe('RulesEngine', function() {
     r.addEvent('otherEvent');
     r.on('testEvent', 'testEventListener', function() { assert.isOk(false); });
     r.on('otherEvent', 'otherEventListener', function() { assert.isOk(false); });
-    r.evaluate('testEvent', { testFact: true }).then(function() {
+    r.evaluate('testEvent', { testFact: true }).done(function() {
       setTimeout(function() {
         !r.isRunningFlg && done();
-      }, 10);
-    }, function() { assert.isOk(false); });
+      },10);
+    });
   });
   it('should evaluate an event and remain in the same state after evaluation (resolve)', function(done) {
     var r = new RulesEngine();
@@ -231,9 +229,9 @@ describe('RulesEngine', function() {
     r.on('rule1', 'rule1Listener', function() { assert.isOk(false);; });
     r.on('rule2', 'rule2Listener', function() { assert.isOk(false);; });
     r.on('rule3', 'rule3Listener', function() { assert.isOk(false);; });
-    r.evaluate('testEvent', { testFact: true }).then(function() {
+    r.evaluate('testEvent', { testFact: true }).done(function() {
       done();
-    }, function() { assert.isOk(false); });
+    });
   });
   it('should be able add many events', function(done) {
     var r = new RulesEngine();
@@ -298,13 +296,13 @@ describe('RulesEngine', function() {
       ['rule3', function(facts) { count++; return false; }, { events: 'event3' }]
     ]);
     count = 0;
-    r.updateFacts({ testFact: true }).then(function() {
+    r.updateFacts({ testFact: true }).always(function() {
       assert.isAtMost(count, 3);
-      r.run().then(function() {
-        assert.isAtMost(count, 3);
-        done();
-      }, function() { assert.isOk(false); })
-    }, function() { assert.isOk(false); });
+      return r.run();
+    }).done(function() {
+      assert.isAtMost(count, 3);
+      done();
+    });
   });
   it('should automatically generate a default event of the same name for each rule', function(done) {
     var r = new RulesEngine();
@@ -366,13 +364,10 @@ describe('RulesEngine', function() {
       ['rule2', function(facts) { return false; }, { events: 'event2' }],
       ['rule3', function(facts) { return false; }, { events: 'event3' }]
     ]);
-    r.updateFacts({testFact: true}).then(function() {
+    r.updateFacts({testFact: true}).done(function() {
       assert.equal(Object.keys(r.evaluatedRules).length, 4);
-    }, function() { assert.isOk(false); })
-    r.evaluate('testRule', {testFact: false}).then(function() {
-      assert.isOk(false);
-    },
-    function() {
+    });
+    r.evaluate('testRule', {testFact: false}).fail(function() {
       done();
     });
   });
@@ -447,9 +442,9 @@ describe('RulesEngine', function() {
       flag = true;
       done();
     });
-    r.updateFacts({testFact: true}).then(function() {
+    r.updateFacts({testFact: true}).done(function() {
       if (!flag) assert.isOk(false);
-    }, function() { assert.isOk(false); });
+    });
   });
   it('should resolve all evaluated rules to boolean after run is complete', function(done) {
     if ($ === 'MODULE_NOT_FOUND') return this.skip();
@@ -479,7 +474,7 @@ describe('RulesEngine', function() {
             }
           ]
         },
-          'rule1'
+        'rule1'
         ]
       }
     });
@@ -490,14 +485,15 @@ describe('RulesEngine', function() {
     r.addRule('rule6', function(facts) { return true; });
     r.addRule('rule7', function(facts) { return false; });
     r.evaluate('testRule', {testFact: true})
-    .then(function() {
-      for (var i = 0; i < r.evaluatedRules.length; i++) {
-        assert.typeOf(r.evaluatedRules[i], 'string');
-      }
-      done();
-    }, function() {
-      assert.isOk(false);
-    });
+      .done(function() {
+        for (var i = 0; i < r.evaluatedRules.length; i++) {
+          assert.typeOf(r.evaluatedRules[i], 'string');
+        }
+        done();
+      })
+      .fail(function() {
+        assert.isOk(false);
+      });
   });
   it('should queue simultaneous runs', function(done) {
     var r = new RulesEngine();
@@ -568,13 +564,13 @@ describe('RulesEngine', function() {
     r.on('rule1', 'rule1_handler', function() { count2++; });
     r.on('rule2', 'rule2_handler', function() { count3++; });
     r.updateFacts({ testFact: true });
-    r.updateFacts({ testFact: true}).then(function() {
+    r.updateFacts({ testFact: true}).done(function() {
       if (count === 3 && count2 === 2 && count3 === 2) {
         done();
       } else {
         assert.isOk(false);
       }
-    }, function() { assert.isOk(false); });
+    });
   });
   this.timeout(3500);
   it('should timeout and reject an async rule evaluation if it\'s too slow (default: 3s)', function(done) {
@@ -585,11 +581,11 @@ describe('RulesEngine', function() {
       var deferred = $.Deferred();
       setTimeout(deferred.resolve, 3500);
       return deferred;
-    })
+    });
     r.addRule('rule1', undefined, {conditions: '!testRule'});
     r.on('rule1', 'rule1_handler', function() {
       flag && done();
-    })
+    });
     r.run();
   });
   this.timeout(3500);
@@ -614,31 +610,30 @@ describe('RulesEngine', function() {
   it('should only trigger events for a rule if a previous run did not trigger the rule', function(done) {
     var r = new RulesEngine();
     var count = 0;
-    r.addRule('testRule', function(facts) { return facts.testFact });
-    r.on('testRule', 'testFact_handler', function() { count++ });
+    r.addRule('testRule', function(facts) { return facts.testFact; });
+    r.on('testRule', 'testFact_handler', function() { count++; });
     count = 0;
     r.updateFacts({testFact: true});
     r.updateFacts({testFact: true});
     r.updateFacts({testFact: false});
-    debugger;
-    r.updateFacts({testFact: true}).then(function() {
+    r.updateFacts({testFact: true}).done(function() {
       assert.equal(count, 2);
       done();
-    }, function() { assert.isOk(false); });
+    });
   });
   it('should trigger multiple times for a rule if toggle is set to false', function(done) {
     var r = new RulesEngine();
     var count = 0;
-    r.addRule('testRule', function(facts) { return facts.testFact }, {toggle: false});
-    r.on('testRule', 'testFact_handler', function() { count++ });
+    r.addRule('testRule', function(facts) { return facts.testFact; }, {toggle: false});
+    r.on('testRule', 'testFact_handler', function() { count++; });
     count = 0;
     r.updateFacts({testFact: true});
     r.updateFacts({testFact: true});
     r.updateFacts({testFact: false});
-    r.updateFacts({testFact: true}).then(function() {
+    r.updateFacts({testFact: true}).done(function() {
       assert.equal(count, 3);
       done();
-    }, function() { assert.isOk(false); });
+    });
   });
   it('should trigger most recently toggled rules first', function(done) {
     var r = new RulesEngine();
@@ -649,30 +644,30 @@ describe('RulesEngine', function() {
       assert.deepEqual(order, [1,2]);
       assert.isAtLeast(r.prevToggle.rule2 - r.prevToggle.rule1, 200);
       order.splice(0);
-      r.updateFacts({fact1: false, fact2: true}).then(function() {
+      r.updateFacts({fact1: false, fact2: true}).done(function() {
         assert.deepEqual(order, [2,1]);
         order.splice(0);
         setTimeout(function() {
-          r.updateFacts({fact1: true, fact2: true}).then(function() {
+          r.updateFacts({fact1: true, fact2: true}).done(function() {
             assert.isAtLeast(r.prevToggle.rule1 - r.prevToggle.rule2, 200);
             order.splice(0);
             setTimeout(function() {
-                r.updateFacts({fact1: true, fact2: true}).then(function() {
-                  assert.deepEqual(order, [1,2]);
-                  done();
-                }, function() { assert.isOk(false); })
+              r.updateFacts({fact1: true, fact2: true}).done(function() {
+                assert.deepEqual(order, [1,2]);
+                done();
+              });
             }, 200);
-          }, function() { assert.isOk(false); });
+          });
         }, 200);
-      }, function() { assert.isOk(false); });
+      });
     }, 200);
   });
   it('should automatically assign handler if none is given', function(done) {
     var r = new RulesEngine();
     r.addRule('rule1', function() { return true; });
-    var fn = function() { done(); }
+    var fn = function() { done(); };
     r.on('rule1', fn);
-    assert.equal(r.events.rule1.bound.rule1, fn)
+    assert.equal(r.events.rule1.bound.rule1, fn);
     r.run();
   });
   it('should allow toggling prioritization even for rules with toggle:false', function(done) {
@@ -685,27 +680,27 @@ describe('RulesEngine', function() {
     r.updateFacts({fact1: true, fact2: false});
     order.splice(0);
     setTimeout(function() {
-      r.updateFacts({fact1: true, fact2: true}).then(function() {
+      r.updateFacts({fact1: true, fact2: true}).done(function() {
         order.splice(0);
-      }, function() { assert.isOk(false); });
+      });
     }, 200);
     setTimeout(function() {
-      r.updateFacts({fact1: true, fact2: true}).then(function() {
+      r.updateFacts({fact1: true, fact2: true}).done(function() {
         setTimeout(function() {
           assert.deepEqual(order, [2, 1]);
-          r.updateFacts({fact1: false, fact2: true}).then(function() {
+          r.updateFacts({fact1: false, fact2: true}).done(function() {
             order.splice(0);
-          }, function() { assert.isOk(false); });
+          });
         }, 50);
-      }, function() { assert.isOk(false); });
+      });
     }, 400);
     setTimeout(function() {
-      r.updateFacts({fact1: true, fact2: true}).then(function() {
+      r.updateFacts({fact1: true, fact2: true}).done(function() {
         setTimeout(function() {
           assert.deepEqual(order, [1, 2]);
           done();
         }, 50);
-      }, function() { assert.isOk(false); });
+      });
     }, 600);
   });
   this.timeout(5000);

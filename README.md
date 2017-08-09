@@ -17,10 +17,10 @@ When facts are updated in the rules engine, its rules are evaluated. If a rule p
 - Supports event listeners
 - Supports nested conditions (all, any)
 - Supports negative conditions (!)
-- Small (10kb minified)
+- Small (9kb minified)
 - Efficient (caching, early exit)
 - ES5 compatible
-- No dependencies
+- Depends only on jQuery
 - Easy to use
 
 If you are developer in need of a lightweight rules engine, this is it.

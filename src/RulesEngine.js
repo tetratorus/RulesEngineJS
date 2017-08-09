@@ -46,44 +46,11 @@
         $ = require('jquery')(window);
         jQuery = $;
       });
+    } else {
+      jQuery = $;
     }
   } catch (e) {
-    // fallback to Zousan promises, if jQuery is not available
-    !function(t){"use strict";function e(t){if(t){var e=this;t(function(t){e.resolve(t)},function(t){e.reject(t)})}}function n(t,e){if("function"==typeof t.y)try{var n=t.y.call(i,e);t.p.resolve(n)}catch(o){t.p.reject(o)}else t.p.resolve(e)}function o(t,e){if("function"==typeof t.n)try{var n=t.n.call(i,e);t.p.resolve(n)}catch(o){t.p.reject(o)}else t.p.reject(e)}var r,i,c="fulfilled",u="rejected",s="undefined",f=function(){function e(){for(;n.length-o;){try{n[o]()}catch(e){t.console&&t.console.error(e)}n[o++]=i,o==r&&(n.splice(0,r),o=0)}}var n=[],o=0,r=1024,c=function(){if(typeof MutationObserver!==s){var t=document.createElement("div"),n=new MutationObserver(e);return n.observe(t,{attributes:!0}),function(){t.setAttribute("a",0)}}return typeof setImmediate!==s?function(){setImmediate(e)}:function(){setTimeout(e,0)}}();return function(t){n.push(t),n.length-o==1&&c()}}();e.prototype={resolve:function(t){if(this.state===r){if(t===this)return this.reject(new TypeError("Attempt to resolve promise with self"));var e=this;if(t&&("function"==typeof t||"object"==typeof t))try{var o=!0,i=t.then;if("function"==typeof i)return void i.call(t,function(t){o&&(o=!1,e.resolve(t))},function(t){o&&(o=!1,e.reject(t))})}catch(u){return void(o&&this.reject(u))}this.state=c,this.v=t,e.c&&f(function(){for(var o=0,r=e.c.length;r>o;o++)n(e.c[o],t)})}},reject:function(n){if(this.state===r){this.state=u,this.v=n;var i=this.c;i?f(function(){for(var t=0,e=i.length;e>t;t++)o(i[t],n)}):!e.suppressUncaughtRejectionError&&t.console&&t.console.log("You upset Zousan. Please catch rejections: ",n,n?n.stack:null)}},then:function(t,i){var u=new e,s={y:t,n:i,p:u};if(this.state===r)this.c?this.c.push(s):this.c=[s];else{var l=this.state,a=this.v;f(function(){l===c?n(s,a):o(s,a)})}return u},"catch":function(t){return this.then(null,t)},"finally":function(t){return this.then(t,t)},timeout:function(t,n){n=n||"Timeout";var o=this;return new e(function(e,r){setTimeout(function(){r(Error(n))},t),o.then(function(t){e(t)},function(t){r(t)})})}},e.resolve=function(t){var n=new e;return n.resolve(t),n},e.reject=function(t){var n=new e;return n.reject(t),n},e.all=function(t){function n(n,c){n&&"function"==typeof n.then||(n=e.resolve(n)),n.then(function(e){o[c]=e,r++,r==t.length&&i.resolve(o)},function(t){i.reject(t)})}for(var o=[],r=0,i=new e,c=0;c<t.length;c++)n(t[c],c);return t.length||i.resolve(o),i},typeof module!=s&&module.exports&&(module.exports=e),t.define&&t.define.amd&&t.define([],function(){return e}),t.Zousan=e,e.soon=f}("undefined"!=typeof global?global:this);
-
-    // wrapper around Zousan to implement jQuery.Deferred's expected interface
-    jQuery = {};
-    jQuery.Deferred = function() {
-      var deferred = new Zousan();
-      var wrapper = {};
-      wrapper.state = function() {
-        if (deferred.state === 'rejected') return 'rejected';
-        if (deferred.state === 'resolved') return 'resolved';
-        return 'pending';
-      }
-      wrapper.then = function() {
-        deferred.then.bind(deferred);
-        return deferred;
-      }
-      wrapper.resolve = function() {
-        deferred.resolve.bind(deferred);
-        return deferred;
-      }
-      wrapper.reject = function() {
-        deferred.reject.bind(deferred);
-        return deferred;
-      }
-      wrapper.always = function() {
-        deferred.finally.bind(deferred);
-        return deferred;
-      }
-      return wrapper;
-    };
-    jQuery.when = function() {
-      var deferred = new Zousan();
-      Zousan.all(Array.prototype.slice.call(arguments)).then(deferred.reject, deferred.resolve);
-      return deferred;
-    }
+    console.error('jQuery not found.');
   }
 
   //***************************************************************//
@@ -155,11 +122,11 @@
   };
 
   /** Adds a rule, accepts three arguments:
-	    name - name of the rule,
-	    evaluator - a function which takes facts and outputs a boolean or a jQuery Deferred object
-	    (addRule will automatically wrap all boolean functions with jQuery.Deferred)
-	    opts - options for conditions, priority, and events (to be triggered)
-	 */
+       name - name of the rule,
+       evaluator - a function which takes facts and outputs a boolean or a jQuery Deferred object
+       (addRule will automatically wrap all boolean functions with jQuery.Deferred)
+       opts - options for conditions, priority, and events (to be triggered)
+    */
   RulesEngine.prototype.addRule = function(name, evaluator, opts) {
     if (typeof name !== 'string') return;
     var wrappedEvaluator;
@@ -170,7 +137,7 @@
         soon(deferred.resolve);
         return deferred;
       };
-    } else if ((evaluator(this.facts) || {}).then === undefined) {
+    } else if ((evaluator(this.facts) || {}).done === undefined) {
       wrappedEvaluator = (function(evaluator) {
         return function(input) {
           var deferred = jQuery.Deferred();
@@ -194,7 +161,13 @@
       wrappedEvaluator = function(input) {
         var deferred = jQuery.Deferred();
         try {
-          evaluator(input).then(deferred.resolve, deferred.reject);
+          evaluator(input)
+            .done(function() {
+              deferred.resolve();
+            })
+            .fail(function() {
+              deferred.reject();
+            });
           setTimeout(function() {
             if (deferred.state() === 'pending') {
               deferred.reject();
@@ -329,8 +302,8 @@
   };
 
   /** Removes a listener for an event by name.
-	    If name is not specified, all listeners for that event are removed.
-	 */
+       If name is not specified, all listeners for that event are removed.
+    */
   RulesEngine.prototype.off = function(event, name) {
     if (name !== undefined) {
       delete this.events[event].bound[name];
@@ -383,18 +356,31 @@
           deferredArray.push(evaluateConditions(condition));
         });
         jQuery.when.apply(jQuery, deferredArray)
-        .then(deferred.resolve, deferred.reject);
+          .done(function() {
+            deferred.resolve();
+          }).fail(function() {
+            deferred.reject();
+          });
       } else if (conditions.any !== undefined) {
         conditions.any.forEach(function(condition) {
           deferredArray.push((function() {
             var deferred = jQuery.Deferred();
             evaluateConditions(condition)
-            .then(deferred.reject, deferred.resolve);
+              .done(function() {
+                deferred.reject();
+              })
+              .fail(function() {
+                deferred.resolve();
+              });
             return deferred;
           })());
         });
         jQuery.when.apply(jQuery, deferredArray)
-        .then(deferred.reject, deferred.resolve)
+          .done(function() {
+            deferred.reject();
+          }).fail(function() {
+            deferred.resolve();
+          });
       } else {
         var name = conditions;
         var opposite = false;
@@ -407,10 +393,20 @@
           }
           if (context.rulesMap[name] !== undefined && opposite === false) {
             evaluateRule(context.rulesMap[name])
-            .then(deferred.resolve, deferred.reject)
+              .done(function() {
+                deferred.resolve();
+              })
+              .fail(function() {
+                deferred.reject();
+              });
           } else if (context.rulesMap[name] !== undefined && opposite === true) {
             evaluateRule(context.rulesMap[name])
-            .then(deferred.reject, deferred.resolve)
+              .done(function() {
+                deferred.reject();
+              })
+              .fail(function() {
+                deferred.resolve();
+              });
           } else {
             deferred.reject();
           }
@@ -428,41 +424,46 @@
       if (context.evaluatedRules[rule.name] === false) return deferred.reject();
       if (context.evaluatedRules[rule.name] !== undefined && typeof context.evaluatedRules[rule.name].always === 'function') {
         context.evaluatedRules[rule.name]
-        .then(deferred.resolve, deferred.reject)
+          .done(function() {
+            deferred.resolve();
+          }).fail(function() {
+            deferred.reject();
+          });
         return deferred;
       }
       context.evaluatedRules[rule.name] = deferred;
 
       var test = function(rule, context, deferred) {
         rule.test(context.facts)
-        .then(function() {
-          context.evaluatedRules[rule.name] = true;
-          if (context.prevValues[rule.name] !== true) context.prevToggle[rule.name] = new Date();
-          if (!rule.toggle || context.prevValues[rule.name] !== true ||
-        (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined)) {
-            for (var i = 0; i < rule.events.length; i++) {
-              if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
+          .done(function() {
+            context.evaluatedRules[rule.name] = true;
+            if (context.prevValues[rule.name] !== true) context.prevToggle[rule.name] = new Date();
+            if (!rule.toggle || context.prevValues[rule.name] !== true ||
+           (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined)) {
+              for (var i = 0; i < rule.events.length; i++) {
+                if (context.emit(rule.events[i], context.isEvaluatingFlg) === true) exit = true;
+              }
             }
-          }
-          deferred.resolve();
-        }, function() {
-          context.evaluatedRules[rule.name] = false;
-          if (context.prevValues[rule.name] !== false) context.prevToggle[rule.name] = new Date();
-          if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
-          deferred.reject();
-        });
+            deferred.resolve();
+          }).fail(function() {
+            context.evaluatedRules[rule.name] = false;
+            if (context.prevValues[rule.name] !== false) context.prevToggle[rule.name] = new Date();
+            if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
+            deferred.reject();
+          });
       };
 
       // check conditions
       if (rule.conditions !== undefined) {
         evaluateConditions(rule.conditions)
-        .then(function() {
-          test(rule, context, deferred);
-        }, function() {
-          context.evaluatedRules[rule.name] = false;
-          if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
-          deferred.reject();
-        });
+          .done(function() {
+            test(rule, context, deferred);
+          })
+          .fail(function() {
+            context.evaluatedRules[rule.name] = false;
+            if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
+            deferred.reject();
+          });
       } else {
         test(rule, context, deferred);
       }
@@ -477,7 +478,7 @@
     // chain promises
     var looper = function(index, deferredFn) {
       deferredFn(index).always(function() {
-        if (index < context.rules.length - 1) {
+        if (index < context.rules.length) {
           looper(index + 1, deferredFn);
         } else {
           deferred.resolve();
@@ -497,8 +498,8 @@
   };
 
   /** Evaluates the rules engine against a set of facts without triggering any existing event listeners.
-	    Used to test a listener against a set of facts.
-	 */
+       Used to test a listener against a set of facts.
+    */
   RulesEngine.prototype.evaluate = function(event, facts) {
     if (this.isRunningFlg) { return this._enqueue(this.evaluate, this, [event, facts]); };
     this.isRunningFlg = true;
@@ -560,9 +561,10 @@
     if (this.queue.length === 0) return;
     var next = this.queue.shift();
     next[0].apply(next[1], next[2])
-      .then(function() {
+      .done(function() {
         next[3].resolve();
-      }, function() {
+      })
+      .fail(function() {
         next[3].reject();
       });
   };
