@@ -129,6 +129,7 @@
     */
   RulesEngine.prototype.addRule = function(name, evaluator, opts) {
     if (typeof name !== 'string') return;
+    this.removeRule(name);
     var wrappedEvaluator;
     var context = this;
     if (typeof evaluator !== 'function') {
@@ -228,6 +229,8 @@
       toggle: opts.toggle
     };
     this.prevToggle[name] = new Date();
+    delete this.evaluatedRules[name];
+    delete this.prevValues[name];
   };
 
   /** Adds many rules */
