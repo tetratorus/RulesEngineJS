@@ -247,6 +247,9 @@
         this.rules.splice(i, 1);
       }
     }
+    delete this.evaluatedRules[name];
+    delete this.prevValues[name];
+    delete this.prevToggle[name];
     delete this.rulesMap[name];
     if (this.events[name] && this.events[name]._auto_generated_ === true) {
       delete this.events[name];
