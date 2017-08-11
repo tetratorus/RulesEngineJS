@@ -7,51 +7,8 @@
     root.RulesEngine = factory();
   }
 }(this, function () {
-  // fast method of yielding execution (instead of setTimeout)
-  var soon = (function() {
-    var fq = [];
-    function callQueue() {
-      while(fq.length) {
-        fq[0]();
-        fq.shift();
-      }
-    }
-    var cqYield = (function() {
-      if (typeof MutationObserver !== "undefined") {
-        var dd = document.createElement("div");
-        var mo = new MutationObserver(callQueue);
-        mo.observe(dd, { attributes: true });
-        return function(fn) { dd.setAttribute("a",0); };
-      }
-      if (typeof setImmediate !== "undefined") {
-        return function() { setImmediate(callQueue); };
-      }
-      return function() { setTimeout(callQueue,0); };
-    })();
-    return function(fn) {
-      fq.push(fn);
-      if(fq.length == 1) cqYield();
-    };
-  })();
-  var jQuery;
-  try {
-    // throw new Error('hi')
-    if (typeof $ === 'undefined') {
-      var jsdom = require('jsdom-no-contextify');
-      jsdom.env('', function(err, window) {
-        if (err) {
-          console.error(err);
-          return;
-        }
-        $ = require('jquery')(window);
-        jQuery = $;
-      });
-    } else {
-      jQuery = $;
-    }
-  } catch (e) {
-    console.error('jQuery not found.');
-  }
+  // use Zousan promises
+  !function(t){"use strict";function e(t){if(t){var e=this;t(function(t){e.resolve(t)},function(t){e.reject(t)})}}function n(t,e){if("function"==typeof t.y)try{var n=t.y.call(i,e);t.p.resolve(n)}catch(o){t.p.reject(o)}else t.p.resolve(e)}function o(t,e){if("function"==typeof t.n)try{var n=t.n.call(i,e);t.p.resolve(n)}catch(o){t.p.reject(o)}else t.p.reject(e)}var r,i,c="fulfilled",u="rejected",s="undefined",f=function(){function e(){for(;n.length-o;){try{n[o]()}catch(e){t.console&&t.console.error(e)}n[o++]=i,o==r&&(n.splice(0,r),o=0)}}var n=[],o=0,r=1024,c=function(){if(typeof MutationObserver!==s){var t=document.createElement("div"),n=new MutationObserver(e);return n.observe(t,{attributes:!0}),function(){t.setAttribute("a",0)}}return typeof setImmediate!==s?function(){setImmediate(e)}:function(){setTimeout(e,0)}}();return function(t){n.push(t),n.length-o==1&&c()}}();e.prototype={resolve:function(t){if(this.state===r){if(t===this)return this.reject(new TypeError("Attempt to resolve promise with self"));var e=this;if(t&&("function"==typeof t||"object"==typeof t))try{var o=!0,i=t.then;if("function"==typeof i)return void i.call(t,function(t){o&&(o=!1,e.resolve(t))},function(t){o&&(o=!1,e.reject(t))})}catch(u){return void(o&&this.reject(u))}this.state=c,this.v=t,e.c&&f(function(){for(var o=0,r=e.c.length;r>o;o++)n(e.c[o],t)})}},reject:function(n){if(this.state===r){this.state=u,this.v=n;var i=this.c;i?f(function(){for(var t=0,e=i.length;e>t;t++)o(i[t],n)}):!e.suppressUncaughtRejectionError&&t.console&&t.console.log("You upset Zousan. Please catch rejections: ",n,n?n.stack:null)}},then:function(t,i){var u=new e,s={y:t,n:i,p:u};if(this.state===r)this.c?this.c.push(s):this.c=[s];else{var l=this.state,a=this.v;f(function(){l===c?n(s,a):o(s,a)})}return u},"catch":function(t){return this.then(null,t)},"finally":function(t){return this.then(t,t)},timeout:function(t,n){n=n||"Timeout";var o=this;return new e(function(e,r){setTimeout(function(){r(Error(n))},t),o.then(function(t){e(t)},function(t){r(t)})})}},e.resolve=function(t){var n=new e;return n.resolve(t),n},e.reject=function(t){var n=new e;return n.reject(t),n},e.all=function(t){function n(n,c){n&&"function"==typeof n.then||(n=e.resolve(n)),n.then(function(e){o[c]=e,r++,r==t.length&&i.resolve(o)},function(t){i.reject(t)})}for(var o=[],r=0,i=new e,c=0;c<t.length;c++)n(t[c],c);return t.length||i.resolve(o),i},typeof module!=s&&module.exports&&(module.exports=e),t.define&&t.define.amd&&t.define([],function(){return e}),t.Zousan=e,e.soon=f}("undefined"!=typeof global?global:this);
 
   //***************************************************************//
   //  Rules Engine                                                 //
@@ -60,10 +17,9 @@
 
   /**
 	 * Simple rules engine with support for event listeners.
-	 * @constructor
-	 * @param {Promise} Promise - accepts a promise library in place of jQuery.
 	 */
-  var RulesEngine = function(Promise) {
+  var RulesEngine = function() {
+    this.Zousan = Zousan;
     this.facts = {};
     this.rules = [];
     this.rulesMap = {};
@@ -76,11 +32,6 @@
     this.engineTimeout = 10000;
     this.isEvaluatingFlg = false;
     this.isRunningFlg = false;
-    if (Promise !== undefined) {
-      jQuery = Promise;
-    } else if (jQuery.Deferred === undefined) {
-      throw new Error ('No jQuery.Deferred or shim found.');
-    }
   };
   RulesEngine.prototype.constructor = RulesEngine;
 
@@ -94,10 +45,10 @@
     if (this.isRunningFlg) { return this._enqueue(this.updateFacts, this, [facts]); };
     this.isRunningFlg = true;
     var context = this;
-    var deferred = jQuery.Deferred();
+    var deferred = new Zousan();
     if (typeof facts === 'object') {
       this.facts = facts;
-      this._run('updateFacts').always(function() {
+      this._run('updateFacts').finally(function() {
         deferred.resolve();
         context._dequeue();
       });
@@ -123,8 +74,7 @@
 
   /** Adds a rule, accepts three arguments:
        name - name of the rule,
-       evaluator - a function which takes facts and outputs a boolean or a jQuery Deferred object
-       (addRule will automatically wrap all boolean functions with jQuery.Deferred)
+       evaluator - a function which takes facts and outputs a boolean or a promise
        opts - options for conditions, priority, and events (to be triggered)
     */
   RulesEngine.prototype.addRule = function(name, evaluator, opts) {
@@ -132,27 +82,33 @@
     this.removeRule(name);
     var wrappedEvaluator;
     var context = this;
+    if (Array.isArray(opts) || typeof opts !== 'object') {
+      opts = {};
+    }
+    if (opts.async === undefined) {
+      opts.async = false;
+    }
     if (typeof evaluator !== 'function') {
       wrappedEvaluator = function() {
-        var deferred = jQuery.Deferred();
-        soon(deferred.resolve);
+        var deferred = new Zousan();
+        Zousan.soon(function() { deferred.resolve(); });
         return deferred;
       };
-    } else if ((evaluator(this.facts) || {}).done === undefined) {
+    } else if (!opts.async) {
       wrappedEvaluator = (function(evaluator) {
         return function(input) {
-          var deferred = jQuery.Deferred();
+          var deferred = new Zousan();
           // convert to async
           try {
             if (evaluator(input)) {
-              soon(deferred.resolve);
+              Zousan.soon(function() { deferred.resolve(); });
             } else {
-              soon(deferred.reject);
+              Zousan.soon(function() { deferred.reject(); });
             }
           } catch (e) {
             context._log('error', e);
-            soon(function() {
-              if (deferred.state() === 'pending') deferred.reject();
+            Zousan.soon(function() {
+              if (deferred.state === undefined) deferred.reject();
             });
           }
           return deferred;
@@ -160,33 +116,23 @@
       })(evaluator);
     } else {
       wrappedEvaluator = function(input) {
-        var deferred = jQuery.Deferred();
+        var deferred = new Zousan();
         try {
-          evaluator(input)
-            .done(function() {
-              deferred.resolve();
-            })
-            .fail(function() {
-              deferred.reject();
-            });
+          evaluator(input).then(function() { deferred.resolve() }, function() { deferred.reject(); });
           setTimeout(function() {
-            if (deferred.state() === 'pending') {
+            if (deferred.state === undefined) {
               deferred.reject();
               context._log('error', 'Timed out for evaluation of function: ' + name);
             }
           }, context.asyncTimeout);
-          return deferred;
         } catch (e) {
           context._log('error', e);
-          soon(function() {
-            if (deferred.state() === 'pending') deferred.reject();
+          Zousan.soon(function() {
+            if (deferred.state === undefined) deferred.reject();
           });
-          return deferred;
         }
+        return deferred;
       };
-    }
-    if (Array.isArray(opts) || typeof opts !== 'object') {
-      opts = {};
     }
     if (opts.priority === undefined) {
       opts.priority = 9;
@@ -323,10 +269,10 @@
     if (this.isRunningFlg) {
       return this._enqueue(this.run, this, []);
     } else {
-      var deferred = jQuery.Deferred();
+      var deferred = new Zousan();
       var context = this;
       this.isRunningFlg = true;
-      this._run('run').always(function() {
+      this._run('run').finally(function() {
         deferred.resolve();
         context._dequeue();
       });
@@ -351,42 +297,30 @@
       return 0;
     });
     var evaluateConditions = function(conditions) {
-      var deferred = jQuery.Deferred();
-      if (exit) return deferred.resolve();
+      var deferred = new Zousan();
+      if (exit) {
+        Zousan.soon(function(){ deferred.resolve(); });
+        return deferred;
+      }
       if (conditions === undefined) {
-        return deferred.resolve();
+        Zousan.soon(function(){ deferred.resolve(); });
+        return deferred;
       }
       var deferredArray = [];
       if (conditions.all !== undefined) {
         conditions.all.forEach(function(condition) {
           deferredArray.push(evaluateConditions(condition));
         });
-        jQuery.when.apply(jQuery, deferredArray)
-          .done(function() {
-            deferred.resolve();
-          }).fail(function() {
-            deferred.reject();
-          });
+        Zousan.all(deferredArray).then(function() { deferred.resolve(); }, function() { deferred.reject(); });
       } else if (conditions.any !== undefined) {
         conditions.any.forEach(function(condition) {
           deferredArray.push((function() {
-            var deferred = jQuery.Deferred();
-            evaluateConditions(condition)
-              .done(function() {
-                deferred.reject();
-              })
-              .fail(function() {
-                deferred.resolve();
-              });
+            var deferred = new Zousan();
+            evaluateConditions(condition).then(function() { deferred.reject(); }, function() { deferred.resolve(); });
             return deferred;
           })());
         });
-        jQuery.when.apply(jQuery, deferredArray)
-          .done(function() {
-            deferred.reject();
-          }).fail(function() {
-            deferred.resolve();
-          });
+        Zousan.all(deferredArray).then(function() { deferred.reject(); }, function() { deferred.resolve(); });
       } else {
         var name = conditions;
         var opposite = false;
@@ -398,50 +332,43 @@
             name = name.slice(1);
           }
           if (context.rulesMap[name] !== undefined && opposite === false) {
-            evaluateRule(context.rulesMap[name])
-              .done(function() {
-                deferred.resolve();
-              })
-              .fail(function() {
-                deferred.reject();
-              });
+            evaluateRule(context.rulesMap[name]).then(function() { deferred.resolve(); }, function() { deferred.reject(); });
           } else if (context.rulesMap[name] !== undefined && opposite === true) {
-            evaluateRule(context.rulesMap[name])
-              .done(function() {
-                deferred.reject();
-              })
-              .fail(function() {
-                deferred.resolve();
-              });
+            evaluateRule(context.rulesMap[name]).then(function() { deferred.reject(); }, function() { deferred.resolve(); });
           } else {
             deferred.reject();
           }
         }
-
       }
-
       return deferred;
     };
     var evaluateRule = function(rule) {
-      var deferred = jQuery.Deferred();
-      if (exit) return deferred.resolve();
-      if (rule === undefined) return deferred.resolve();
-      if (context.evaluatedRules[rule.name] === true) return deferred.resolve();
-      if (context.evaluatedRules[rule.name] === false) return deferred.reject();
-      if (context.evaluatedRules[rule.name] !== undefined && typeof context.evaluatedRules[rule.name].always === 'function') {
-        context.evaluatedRules[rule.name]
-          .done(function() {
-            deferred.resolve();
-          }).fail(function() {
-            deferred.reject();
-          });
+      var deferred = new Zousan();
+      if (exit) {
+        Zousan.soon(function(){ deferred.resolve(); });
+        return deferred;
+      }
+      if (rule === undefined) {
+        Zousan.soon(function(){ deferred.resolve(); });
+        return deferred;
+      }
+      if (context.evaluatedRules[rule.name] === true) {
+        Zousan.soon(function(){ deferred.resolve(); });
+        return deferred;
+      }
+      if (context.evaluatedRules[rule.name] === false) {
+        Zousan.soon(function(){ deferred.reject(); });
+        return deferred;
+      }
+      if (context.evaluatedRules[rule.name] !== undefined && typeof context.evaluatedRules[rule.name].then === 'function') {
+        context.evaluatedRules[rule.name].then(function() { deferred.resolve(); }, function() { deferred.reject(); });
         return deferred;
       }
       context.evaluatedRules[rule.name] = deferred;
 
       var test = function(rule, context, deferred) {
         rule.test(context.facts)
-          .done(function() {
+          .then(function() {
             context.evaluatedRules[rule.name] = true;
             if (context.prevValues[rule.name] !== true) context.prevToggle[rule.name] = new Date();
             if (!rule.toggle || context.prevValues[rule.name] !== true ||
@@ -451,7 +378,7 @@
               }
             }
             deferred.resolve();
-          }).fail(function() {
+          }, function() {
             context.evaluatedRules[rule.name] = false;
             if (context.prevValues[rule.name] !== false) context.prevToggle[rule.name] = new Date();
             if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
@@ -462,10 +389,9 @@
       // check conditions
       if (rule.conditions !== undefined) {
         evaluateConditions(rule.conditions)
-          .done(function() {
+          .then(function() {
             test(rule, context, deferred);
-          })
-          .fail(function() {
+          }, function() {
             context.evaluatedRules[rule.name] = false;
             if (((context.events[rule.name]||{}).bound||{})._evaluation_event !== undefined) exit = true;
             deferred.reject();
@@ -477,14 +403,14 @@
       return deferred;
     };
     if (Object.keys(context.rulesMap).length === 0) {
-      return jQuery.Deferred().resolve();
+      return Zousan.resolve();
     }
-    var deferred = jQuery.Deferred();
+    var deferred = new Zousan();
 
     // chain promises
     var looper = function(index, deferredFn) {
-      deferredFn(index).always(function() {
-        if (index < context.rules.length) {
+      deferredFn(index).finally(function() {
+        if (index < context.rules.length - 1) {
           looper(index + 1, deferredFn);
         } else {
           deferred.resolve();
@@ -495,7 +421,7 @@
       return evaluateRule(context.rulesMap[context.rules[index]]);
     });
     setTimeout(function() {
-      if (deferred.state() === 'pending') {
+      if (deferred.state === undefined) {
         context._log('error', 'Rules engine timed out.');
         deferred.reject();
       }
@@ -510,7 +436,7 @@
     if (this.isRunningFlg) { return this._enqueue(this.evaluate, this, [event, facts]); };
     this.isRunningFlg = true;
     this.isEvaluatingFlg = true;
-    var deferred = jQuery.Deferred();
+    var deferred = new Zousan();
     var tempFacts = this.facts;
     var tempEvaluatedRules = {};
     for (var rule in this.evaluatedRules) {
@@ -538,7 +464,7 @@
     this.on(event, '_evaluation_event', function(facts) {
       deferred.resolve();
     });
-    this._run('evaluate').always(function() {
+    this._run('evaluate').finally(function() {
       context.off(event, '_evaluation_event');
       context.facts = tempFacts;
       context.evaluatedRules = tempEvaluatedRules;
@@ -548,7 +474,7 @@
         context.rulesMap[event].priority = tempPriority;
       }
       context.isEvaluatingFlg = false;
-      if (deferred.state() === 'pending') {
+      if (deferred.state === undefined) {
         deferred.reject();
       }
       context._dequeue();
@@ -557,7 +483,7 @@
   };
 
   RulesEngine.prototype._enqueue = function(fn, context, argsArr) {
-    var deferred = jQuery.Deferred();
+    var deferred = new Zousan();
     this.queue.push([fn, context, argsArr, deferred]);
     return deferred;
   };
@@ -567,10 +493,9 @@
     if (this.queue.length === 0) return;
     var next = this.queue.shift();
     next[0].apply(next[1], next[2])
-      .done(function() {
+      .then(function() {
         next[3].resolve();
-      })
-      .fail(function() {
+      }, function() {
         next[3].reject();
       });
   };

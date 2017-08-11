@@ -20,7 +20,7 @@ When facts are updated in the rules engine, its rules are evaluated. If a rule p
 - Small (9kb minified)
 - Efficient (caching, early exit)
 - ES5 compatible
-- Depends only on jQuery
+- No dependencies
 - Easy to use
 
 If you are developer in need of a lightweight rules engine, this is it.
@@ -31,13 +31,13 @@ If you are developer in need of a lightweight rules engine, this is it.
 
 ## How do I use it?
 
-1. Define a rules engine.
+- Define a rules engine.
 
   ```javascript
   var RE = new RulesEngine();
   ```
 
-2. Add rules.
+- Add rules.
 
   ```javascript
   RE.addRules([
@@ -51,27 +51,26 @@ If you are developer in need of a lightweight rules engine, this is it.
         conditions: {
             all: ['!approved', '!active']
         },
-        events: 'is_editable'
     }]
   ]);
   ```
 
-3. Add listeners.
+- Add listeners.
 
   ```javascript
-  RE.on('is_editable', 'disable_button', function() {
-  $('.edit-button').removeClass('disabled');
+  RE.on('not_approved_or_active', function() {
+    $('.edit-button').removeClass('disabled');
   });
   ```
 
-4. Update facts.
+- Update facts and listeners will be triggered.
 
   ```javascript
   RE.updateFacts({status: 3});
   // is_editable event triggered: edit-button is now enabled
   ```
 
-5. Evaluate just a single rule.
+- Or evaluate just a single rule.
 
   ```javascript
   RE.evaluate('active', {status: 1})

@@ -1,6 +1,6 @@
 {
   "name": "rulesenginejs",
-  "version": "1.24.0",
+  "version": "1.25.0",
   "description": "A simple front-end rules engine",
   "main": "dist/rulesengine.min.js",
   "scripts": {
@@ -15,8 +15,6 @@
   "dependencies": {},
   "devDependencies": {
     "chai": "^4.1.0",
-    "jquery": "^3.2.1",
-    "jsdom-no-contextify": "^3.1.0",
     "json-stable-stringify": "^1.0.1",
     "mocha": "^3.4.2",
     "uglify-js": "^3.0.27"
