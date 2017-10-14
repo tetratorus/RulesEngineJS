@@ -407,8 +407,8 @@ describe('RulesEngine', function() {
   it('should return a deep copy of facts', function(done) {
     var r = new RulesEngine();
     r.facts = {c: {d: {e: [1,2,3,4,5]}}};
-    assert.isOk(r.facts !== r.getFacts());
-    assert.deepEqual(r.facts, r.getFacts());
+    assert.isOk(r.facts !== r.copyFacts());
+    assert.deepEqual(r.facts, r.copyFacts());
     done();
   });
   it('should be able to access nested facts using "getFacts"', function(done) {
@@ -607,10 +607,10 @@ describe('RulesEngine', function() {
     });
   });
   this.timeout(1000);
-  it('should only trigger events for a rule if a previous run did not trigger the rule', function(done) {
+  it('should only trigger events for a rule if a previous run did not trigger the rule if toggle is set to true', function(done) {
     var r = new RulesEngine();
     var count = 0;
-    r.addRule('testRule', function(facts) { return facts.testFact; });
+    r.addRule('testRule', function(facts) { return facts.testFact; }, {toggle: true});
     r.on('testRule', 'testFact_handler', function() { count++; });
     count = 0;
     r.updateFacts({testFact: true});

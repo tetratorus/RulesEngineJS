@@ -89,29 +89,66 @@
     console[method](logs);
   };
 
+  RulesEngine.prototype._extend = function(facts, obj) {
+    for (var key in obj) {
+      facts[key] = obj[key];
+    }
+    return facts;
+  }
+
   /** Replaces all the facts in the rules engine and triggers a run. */
   RulesEngine.prototype.updateFacts = function(facts) {
-    if (this.isRunningFlg) { return this._enqueue(this.updateFacts, this, [facts]); };
+    var factsArray = Array.prototype.slice.call(arguments);
+    if (this.isRunningFlg) { return this._enqueue(this.updateFacts, this, factsArray); };
     this.isRunningFlg = true;
     var context = this;
     var deferred = jQuery.Deferred();
-    if (typeof facts === 'object') {
-      this.facts = facts;
-      this._run('updateFacts').always(function() {
-        deferred.resolve();
-        context._dequeue();
+    var facts = {};
+    try {
+      factsArray.map(function(item) {
+        if (typeof item !== 'object') throw new Error('updateFacts() only accepts objects as arguments.');
+        facts = context._extend(facts, item);
       });
+      var updatedKeys = [];
+      for (var key in facts) {
+        context.facts[key] = facts[key];
+        updatedKeys.push(key);
+      }
+      for (var k in context.facts) {
+        if (updatedKeys.indexOf(k) === -1) {
+          delete context.facts[k];
+        } else {
+          context.facts[k] = context._deepCopy(context.facts[k]);
+        }
+      }
+    } catch (e) {
+      this._log('error', e);
+      deferred.resolve();
+      context._dequeue();
       return deferred;
     }
+    this._run('updateFacts').always(function() {
+      deferred.resolve();
+      context._dequeue();
+    });
+    return deferred;
   };
 
   /** Returns a deep copy of an object (can be overriden). */
   RulesEngine.prototype._deepCopy = function(obj) {
-    return JSON.parse(JSON.stringify(obj));
+    try {
+      return JSON.parse(JSON.stringify(obj));
+    } catch (e) {
+      this._log(e);
+      return obj;
+    }
   };
 
+  /** Get facts via dot accessors.
+      Facts should be immutable. Update them using updateFacts().
+   */
   RulesEngine.prototype.getFacts = function(accessor) {
-    var res = this._deepCopy(this.facts);
+    var res = this.facts;
     if (accessor === undefined || typeof accessor !== 'string') return res;
     var arr = accessor.split('.');
     for (var i = 0; i < arr.length; i++) {
@@ -121,6 +158,11 @@
     return res;
   };
 
+  /** Helper function to get deep copy of facts. */
+  RulesEngine.prototype.copyFacts = function(accessor) {
+    return this._deepCopy(this.getFacts(accessor));
+  }
+
   /** Adds a rule, accepts three arguments:
        name - name of the rule,
        evaluator - a function which takes facts and outputs a boolean or a jQuery Deferred object
@@ -129,7 +171,10 @@
     */
   RulesEngine.prototype.addRule = function(name, evaluator, opts) {
     if (typeof name !== 'string') return;
-    this.removeRule(name);
+    if (this.rulesMap[name] !== undefined) {
+      this._log('warn', 'Rule has already been defined. Removing previous rule.');
+      this.removeRule(name);
+    }
     var wrappedEvaluator;
     var context = this;
     if (typeof evaluator !== 'function') {
@@ -192,7 +237,7 @@
       opts.priority = 9;
     }
     if (opts.toggle === undefined) {
-      opts.toggle = true;
+      opts.toggle = false;
     }
     if (!Array.isArray(opts.events)) {
       if (opts.events !== undefined) {
@@ -286,14 +331,22 @@
   /** Emits an event and triggers all handlers bound to that event. */
   RulesEngine.prototype.emit = function(event, isEvaluatingFlg) {
     if (isEvaluatingFlg) {
-      if (this.events[event].bound._evaluation_event !== undefined) {
-        this.events[event].bound._evaluation_event(this.facts);
+      if (this.events[event] && this.events[event].bound._evaluation_event !== undefined) {
+        try {
+          this.events[event].bound._evaluation_event(this.facts);
+        } catch (e) {
+          this._log('error', e);
+        }
         return true;
       }
       return false;
     }
     for (var name in this.events[event].bound) {
-      this.events[event].bound[name](this.facts);
+      try {
+        this.events[event].bound[name](this.facts);
+      } catch (e) {
+        this._log('error', e);
+      }
     }
     return false;
   };
@@ -304,7 +357,11 @@
       handler = name;
       name = event;
     }
-    this.events[event].bound[name] = handler;
+    try {
+      this.events[event].bound[name] = handler;
+    } catch (e) {
+      this._log('error', e);
+    }
   };
 
   /** Removes a listener for an event by name.
@@ -484,7 +541,7 @@
     // chain promises
     var looper = function(index, deferredFn) {
       deferredFn(index).always(function() {
-        if (index < context.rules.length) {
+        if (index < context.rules.length && !exit) {
           looper(index + 1, deferredFn);
         } else {
           deferred.resolve();
@@ -497,6 +554,7 @@
     setTimeout(function() {
       if (deferred.state() === 'pending') {
         context._log('error', 'Rules engine timed out.');
+        context.evaluatedRules = {};
         deferred.reject();
       }
     }, this.engineTimeout);
