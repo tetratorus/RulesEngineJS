@@ -393,7 +393,7 @@ describe('RulesEngine', function() {
       flag = true;
       return temp.apply($, arguments);
     };
-    var r = new RulesEngine($);
+    var r = new RulesEngine({promise: $});
     r.addEvents(['testEvent', 'event1', 'event2', 'event3']);
     r.addRules([
       ['testRule', function(facts) { return facts.testFact; }, { events: 'testEvent', conditions: { all: [{ any: ['!rule2', 'rule3'] }, '!rule1'] } }],
@@ -707,7 +707,7 @@ describe('RulesEngine', function() {
   it('should be performant', function(done) {
     var r = new RulesEngine();
     var facts = {};
-    r.addRule('rule0', function() { return facts.fact0; });
+    r.addRule('rule0', function(facts) { return facts.fact0; });
     facts.fact0 = true;
     for (var i = 1; i < 1000; i++) {
       r.addRule('rule' + i, function(facts) { return facts['fact' + i]; });
@@ -720,4 +720,21 @@ describe('RulesEngine', function() {
       done();
     });
   });
+  it('should not have closure variables (when settings:determinstic is true)', function(done) {
+    var r = new RulesEngine({settings: {deterministic: true}});
+    var facts = {};
+    var l = 3;
+    r.addRule('rule0', function() {
+      if (typeof l === 'undefined') {
+        return true;
+      } else {
+        assert.isOk(false)
+      }
+    });
+    var count = 0;
+    r.on('rule0', function() { count++; })
+    r.updateFacts(facts).done(function() {
+      if (count === 1) done();
+    })
+  })
 });

@@ -61,25 +61,34 @@
   /**
 	 * Simple rules engine with support for event listeners.
 	 * @constructor
-	 * @param {Promise} Promise - accepts a promise library in place of jQuery.
+	 * @param {promise} promise - accepts a promise library in place of jQuery.
 	 */
-  var RulesEngine = function(Promise) {
-    this.facts = {};
-    this.rules = [];
-    this.rulesMap = {};
-    this.evaluatedRules = {};
-    this.prevValues = {};
-    this.prevToggle = {};
-    this.events = {};
-    this.queue = [];
-    this.asyncTimeout = 3000;
-    this.engineTimeout = 10000;
-    this.isEvaluatingFlg = false;
-    this.isRunningFlg = false;
-    if (Promise !== undefined) {
-      jQuery = Promise;
+  var RulesEngine = function(opts) {
+    if (opts === undefined) {
+      opts = {};
+    }
+    this.facts = opts.facts || {};
+    this.rules = opts.rules || [];
+    this.rulesMap = opts.rulesMap || {};
+    this.evaluatedRules = opts.evaluatedRules || {};
+    this.prevValues = opts.prevValues || {};
+    this.prevToggle = opts.prevToggle || {};
+    this.events = opts.events || {};
+    this.queue = opts.queue || [];
+    this.asyncTimeout = opts.asyncTimeout || 3000;
+    this.engineTimeout = opts.engineTimeout || 10000;
+    this.isEvaluatingFlg = opts.isEvaluatingFlg || false;
+    this.isRunningFlg = opts.isRunningFlg || false;
+    this.settings = opts.settings || {
+      deterministic: false
+    };
+    this.promise = opts.promise;
+    if (this.promise !== undefined) {
+      jQuery = this.promise;
     } else if (jQuery.Deferred === undefined) {
       throw new Error ('No jQuery.Deferred or shim found.');
+    } else {
+      this.promise = jQuery;
     }
   };
   RulesEngine.prototype.constructor = RulesEngine;
@@ -170,6 +179,9 @@
        opts - options for conditions, priority, and events (to be triggered)
     */
   RulesEngine.prototype.addRule = function(name, evaluator, opts) {
+    if (this.settings.deterministic) {
+      evaluator = (new Function('return ' + evaluator))();
+    }
     if (typeof name !== 'string') return;
     if (this.rulesMap[name] !== undefined) {
       this._log('warn', 'Rule has already been defined. Removing previous rule.');
