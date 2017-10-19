@@ -413,6 +413,7 @@ describe('RulesEngine', function() {
   });
   it('should be able to access nested facts using "getFacts"', function(done) {
     var r = new RulesEngine();
+    r._log = function() {};
     r.facts = {a: {b: {c: 3}}};
     try {
       r.addRule('testRule1', function(facts) { return facts.a.b.c.d.e; });
@@ -736,5 +737,21 @@ describe('RulesEngine', function() {
     r.updateFacts(facts).done(function() {
       if (count === 1) done();
     })
-  })
+  });
+  it('should add rules that accept two arguments : RE, facts', function(done) {
+    var r = new RulesEngine();
+    var facts = {a: 1, b: 2, c: 3};
+    var count = 0;
+    r.addRule('rule0', function(facts) {
+      if (facts.a === 1) count++;
+    });
+    r.addRule('rule1', function(r, facts) {
+      if (r.facts === facts) count++;
+    });
+    console.log(count);
+    count = 0;
+    r.updateFacts(facts).done(function() {
+      if (count === 2) done();
+    });
+  });
 });

@@ -199,13 +199,36 @@
         }
         return deferred;
       };
-    } else if (((function(facts){ try { return evaluator(facts); } catch(e) { return {}; } })(this.facts) || {}).done === undefined) {
+    } else if (
+        ((function(){
+          try {
+            return evaluator.apply(
+              this,
+              Array.prototype.slice.call(
+                arguments,
+                arguments.length - evaluator.length,
+                arguments.length
+              )
+            );
+          } catch(e) {
+            context._log('error', e);
+            return {};
+          }
+        })(this.facts) || {}).done === undefined
+      ) {
       wrappedEvaluator = (function(evaluator) {
-        return function(input) {
+        return function() {
           var deferred = jQuery.Deferred();
           // convert to async
           try {
-            if (evaluator(input)) {
+            if (evaluator.apply(
+              this,
+              Array.prototype.slice.call(
+                arguments,
+                arguments.length - evaluator.length,
+                arguments.length
+              )
+            )) {
               soon(deferred.resolve);
             } else {
               soon(deferred.reject);
@@ -220,16 +243,23 @@
         };
       })(evaluator);
     } else {
-      wrappedEvaluator = function(input) {
+      wrappedEvaluator = function() {
         var deferred = jQuery.Deferred();
         try {
-          evaluator(input)
-            .done(function() {
-              deferred.resolve();
-            })
-            .fail(function() {
-              deferred.reject();
-            });
+          evaluator.apply(
+            this,
+            Array.prototype.slice.call(
+              arguments,
+              arguments.length - evaluator.length,
+              arguments.length
+            )
+          )
+          .done(function() {
+            deferred.resolve();
+          })
+          .fail(function() {
+            deferred.reject();
+          });
           setTimeout(function() {
             if (deferred.state() === 'pending') {
               deferred.reject();
@@ -411,6 +441,7 @@
   RulesEngine.prototype._run = function(caller) {
     var exit = false;
     var context = this;
+    var ruleArgs = [context, context.facts];
     context.prevValues = {};
     for (var rule in context.evaluatedRules) {
       context.prevValues[rule] = context.evaluatedRules[rule];
@@ -513,7 +544,7 @@
       context.evaluatedRules[rule.name] = deferred;
 
       var test = function(rule, context, deferred) {
-        rule.test(context.facts)
+        rule.test.apply(context, ruleArgs)
           .done(function() {
             context.evaluatedRules[rule.name] = true;
             if (context.prevValues[rule.name] !== true) context.prevToggle[rule.name] = new Date();
