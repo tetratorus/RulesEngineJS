@@ -180,10 +180,14 @@
     if (typeof evaluator !== 'function') {
       wrappedEvaluator = function() {
         var deferred = jQuery.Deferred();
-        soon(deferred.resolve);
+        if (evaluator || evaluator === undefined) {
+          soon(deferred.resolve);
+        } else {
+          soon(deferred.reject);
+        }
         return deferred;
       };
-    } else if ((evaluator(this.facts) || {}).done === undefined) {
+    } else if (((function(facts){ try { return evaluator(facts); } catch(e) { return {}; } })(this.facts) || {}).done === undefined) {
       wrappedEvaluator = (function(evaluator) {
         return function(input) {
           var deferred = jQuery.Deferred();
